@@ -19,7 +19,8 @@ function Node (val, isred) {        // new node factory
 
 function redraw (val, operation) {
     if (operation === 1) {      // Insert Operation
-        var n = Node(val);
+        var n = Node(val, true);
+    }
 }
 
 function updateTree() {
@@ -31,7 +32,7 @@ function updateTree() {
     if (document.getElementById("search").checked)
         operation = 3;
     
-    redraw(document.getElementById("nodeVal").value, operation);
+    redraw(parseInt(document.getElementById("nodeVal").value), operation);
 }
 
 (function initCanvas() {
