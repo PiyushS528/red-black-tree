@@ -1,28 +1,34 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title> Red Black Tree </title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body>
-        <main>
-            <h1> Red Black Trees</h1>
-            <h6> Visual Demonstration of basic operations on Red-Black Trees </h6>
-            <canvas id="canvasArea"> Canvas is not supported on your browser </canvas> <br><br>
-            
-            <input type="number" value="0" id="nodeValue"> <br>
-            
-            <label for="insert"> Insert </label>
-            <input type="radio" name="operation" id="insert" checked>
-            <label for="delete"> Delete </label>
-            <input type="radio" name="operation" id="delete">
-            <label for="search"> Search </label>
-            <input type="radio" name="operation" id="search">
-            
-            <button id="update" onclick="updateTree()"> Update </button>
-        </main>
-        
-        <script type="text/javascript" src="rb-tree-script.js"></script>
-    </body>
+	<head>
+		<title> Red Black Tree </title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<style type="text/css">
+			#canvasArea {
+				border: 1px solid #000000;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<h1> Red Black Trees</h1>
+			<h3> Visual Demonstration of basic operations on Red-Black Trees </h3>
+			<canvas id="canvasArea" width=400 height=400> Canvas is not supported on your browser </canvas> <br><br>
+
+			<label for="insert"> Insert </label>
+			<input type="radio" name="operation" id="insert" checked>
+			<label for="delete"> Delete </label>
+			<input type="radio" name="operation" id="delete">
+			<label for="search"> Search </label>
+			<input type="radio" name="operation" id="search"> <br>
+			
+			<input type="number" value="0" id="nodeValue">
+
+			<button id="update" onclick="updateTree()"> Update </button>
+		</main>
+		
+		<script type="text/javascript" src="rb-tree-script.js"></script>
+	</body>
 </html>
