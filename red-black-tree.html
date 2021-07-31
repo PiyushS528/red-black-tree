@@ -15,7 +15,7 @@
 		<main>
 			<h1> Red Black Trees</h1>
 			<h3> Visual Demonstration of basic operations on Red-Black Trees </h3>
-			<canvas id="canvasArea" width=400 height=400> Canvas is not supported on your browser </canvas> <br><br>
+			<canvas id="canvasArea" width=800 height=400> Canvas is not supported on your browser </canvas> <br><br>
 
 			<label for="insert"> Insert </label>
 			<input type="radio" name="operation" id="insert" checked>
@@ -24,11 +24,19 @@
 			<label for="search"> Search </label>
 			<input type="radio" name="operation" id="search"> <br>
 			
-			<input type="number" value="0" id="nodeValue">
+			<input type="number" value="2" id="nodeValue">
 
 			<button id="update" onclick="updateTree()"> Update </button>
+
+			<button onclick="button1()">Randomize</button>
+			<button onclick="button2()">Rotate right</button>
+			<button onclick="button3()">Rotate left</button>
+			<button onclick="button4()">Draw on canvas</button><br>
+
+			<div id="log"></div>
 		</main>
 		
+		<script type="text/javascript" src="treeObj.js"></script>
 		<script type="text/javascript" src="rb-tree-script.js"></script>
 	</body>
 </html>
