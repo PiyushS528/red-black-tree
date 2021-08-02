@@ -18,8 +18,7 @@ var tree = {
 	copyNode (from, to)
 	getNodes()
 	randomize (pos, num = 100)
-	rotateRight (index)		// Right rotate at nodes[index]
-	rotateLeft (index)		// Left rotate at nodes[index]
+	rotate (index, direc = 0)		// Performs rotation of the tree; direc = 0 for left, 1 for right rotation
 }
 
 ******************************* */
@@ -236,3 +235,5 @@ window.onload = function initCanvas() {
 
 	printlog(0, 0, true);
 }
+
+
