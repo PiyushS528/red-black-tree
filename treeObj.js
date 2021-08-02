@@ -1,7 +1,5 @@
 
 function Node (val = 0, col = -1) {		// Node class
-	//printlog ("val, col", val + ' ' + col);
-
 	this.value = val;
 	this.color = col;	   // 0=> black;  1=> red;  -1 or any other value=> Node does not exist
 
@@ -30,13 +28,14 @@ var tree = {
 		}
 		return index;
 	},
-	levelOf: function levelOf (pos) {
+	levelOf: function levelOf (pos, return2power = false) {
 		var level = 0, exponent = 2;
 		while (pos > exponent - 2) {
 			++level;
 			exponent *= 2;
 		}
-		return level;
+		if (!return2power) return level;
+		else return exponent;
 	},
 	nodeExists: function nodeExists (pos) {
 		if (!this.nodes[pos] || this.nodes[pos].color === -1) {
@@ -59,7 +58,7 @@ var tree = {
 				++begin;
 			}
 			if (node)
-				++this.height;
+				this.height = currLevel;
 		}
 		this.nodes[pos] = node;
 	},
@@ -72,15 +71,16 @@ var tree = {
 			var end = 2 * begin;
 
 			while (begin <= end) {
-				if (this.nodeExists(begin))
+				if (this.nodeExists(begin)) { console.log('not empty level', pos);
 					return;
+				}
 				++begin;
 			}
-			--this.height;
+			this.height = currLevel - 1;
 			if (this.height < 0) this.height = 0;
 		}
 	},
-	insertNode: function insertNode (val, col) {
+	insertNode: function insertNode (val, col = 0) {
 		var currNode = 0;
 
 		if (!this.nodeExists(currNode))
@@ -141,135 +141,26 @@ var tree = {
 	}
 };
 
-tree.rotateRight = function rotateRight (index) {		// Right rotate at nodes[index]
-	if (!this.nodeExists(index*2 + 1)) return;
+tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the tree; direc = 0 for left, 1 for right rotation
+	if (direc === 0 && !this.nodeExists(index*2 + 2)) return;
+	if (direc === 1 && !this.nodeExists(index*2 + 1)) return;
+
+	var changes = [];	// Records the before and after indices of nodes that are moved during rotation
 
 	var backupNodes = [];
-	var firstCopy = 2 * index + 2;
-	var firstPaste = 2 * firstCopy + 2;
+	var firstCopy = 2 * index + ((direc === 0) ? 1 : 2);
+	var firstPaste = 2 * firstCopy + ((direc === 0) ? 1 : 2);
 
 	backupNodes.push(this.nodes[firstPaste]);
 
 	this.copyNode(firstCopy, firstPaste);
 	this.copyNode(index, firstCopy);
-
-	printlog("Pre", this.getNodes());
-
-	var i = 1;
-
-	while (1) {
-		firstCopy = firstCopy * 2 + 1;
-		firstPaste = firstPaste * 2 + 1;
-
-		var emptyRow = true;
-
-		for (var j = 0; j < i; ++j) {
-
-			if (this.nodeExists(firstPaste + j))
-				backupNodes.push(this.nodes[firstPaste + j]);
-			else backupNodes.push(null);
-
-			this.copyNode(firstCopy + j, firstPaste + j);
-
-			if (this.nodeExists(firstCopy + j)) {
-				emptyRow = false;
-				this.deleteNode(firstCopy + j);
-			}
-
-			printlog("1", this.getNodes());
-		}
-		for (var j = 0; j < i; ++j) {
-			if (backupNodes[0] && backupNodes[0].color !== -1)
-				emptyRow = false;
-
-			if (this.nodeExists(firstPaste + j + i))
-				backupNodes.push(this.nodes[firstPaste + j + i]);
-			else backupNodes.push(null);
-
-			var tempNode = backupNodes.shift();
-			this.setNode(firstPaste + i + j, tempNode, false);
-
-			printlog("1(2)", this.getNodes());
-		}
-		i *= 2;
-		if (emptyRow)
-			break;
-	}
-	drawNodes();
-
-	printlog("Mid", this.getNodes());
-
-	firstCopy = this.at("lr", index);
-	firstPaste = firstCopy + 1;
-	i = 1;
-
-	while (2) {
-		var emptyRow = true;
-		for (var j = 0; j < i; ++j) {
-			this.copyNode(firstCopy + j, firstPaste + j);
-
-			if (this.nodeExists(firstCopy + j)) {
-				emptyRow = false;
-				this.deleteNode(firstCopy + j, false);
-			}
-		}
-
-		if (emptyRow) break;
-		firstCopy = 2 * firstCopy + 1;
-		firstPaste = 2 * firstPaste + 1;
-		i *= 2;
-
-		printlog("2", this.getNodes());
-	}
-	
-	firstPaste = 2 * index + 1;
-	firstCopy = 2 * firstPaste + 1;
-	i = 1;
-
-	this.copyNode(firstPaste, index);
-
-	while (3) {
-		var emptyRow = true;
-
-		for (j = 0; j < i; ++j) {
-			this.copyNode(firstCopy + j, firstPaste + j);
-
-			if (this.nodeExists(firstCopy + j)) {
-				emptyRow = false;
-				this.deleteNode(firstCopy + j, false);	// We don't want deleteNode to recalculate the height since there could be more child nodes left that we need to move up
-			}
-		}
-
-		if (emptyRow) {
-			this.deleteNode(firstCopy + j - 1);
-			break;
-		}
-
-		i *= 2;
-		firstCopy = 2 * firstCopy + 1;
-		firstPaste = 2 * firstPaste + 1;
-
-		printlog("3", this.getNodes());
-	}
-}
-
-tree.rotateLeft = function rotateLeft (index) {		// Left rotate at nodes[index]
-	if (!this.nodeExists(index*2 + 2)) return;
-
-	var backupNodes = [];
-	var firstCopy = 2 * index + 1;
-	var firstPaste = 2 * firstCopy + 1;
-
-	backupNodes.push(this.nodes[firstPaste]);
-
-	this.copyNode(firstCopy, firstPaste);
-	this.copyNode(index, firstCopy);
-
-	printlog("Pre", this.getNodes());
+	changes.push({from: firstCopy, to: firstPaste});
+	changes.push({from: index, to: firstCopy});
 
 	var i = 1;
 
-	while (1) {
+	if (direc === 0) while (1) {
 		firstCopy = firstCopy * 2 + 1;
 		firstPaste = firstPaste * 2 + 1;
 
@@ -285,40 +176,70 @@ tree.rotateLeft = function rotateLeft (index) {		// Left rotate at nodes[index]
 
 			var tempNode = backupNodes.shift();
 			this.setNode(firstPaste + j, tempNode, false);
-
-			printlog("1(2)", this.getNodes());
+			changes.push({from: firstCopy + j, to: firstPaste + j});
 		}
 		for (var j = 0; j < i; ++j) {
-
 			if (this.nodeExists(firstPaste + j + i))
 				backupNodes.push(this.nodes[firstPaste + j + i]);
 			else backupNodes.push(null);
 
 			this.copyNode(firstCopy + j + i, firstPaste + j + i);
+			changes.push({from: firstCopy + j + i, to: firstPaste + j + i});
 
 			if (this.nodeExists(firstCopy + j + i)) {
 				emptyRow = false;
-				this.deleteNode(firstCopy + j + i);
+				this.deleteNode(firstCopy + j + i, false);
 			}
-
-			printlog("1", this.getNodes());
 		}
 		i *= 2;
 		if (emptyRow)
 			break;
 	}
-	drawNodes();
+	else while (1) {
+		firstCopy = firstCopy * 2 + 1;
+		firstPaste = firstPaste * 2 + 1;
 
-	printlog("Mid", this.getNodes());
+		var emptyRow = true;
 
-	firstCopy = this.at("rl", index);
-	firstPaste = firstCopy - 1;
+		for (var j = 0; j < i; ++j) {
+			if (this.nodeExists(firstPaste + j))
+				backupNodes.push(this.nodes[firstPaste + j]);
+			else backupNodes.push(null);
+
+			this.copyNode(firstCopy + j, firstPaste + j);
+			changes.push({from: firstCopy + j, to: firstPaste + j});
+
+			if (this.nodeExists(firstCopy + j)) {
+				emptyRow = false;
+				this.deleteNode(firstCopy + j, false);
+			}
+		}
+		for (var j = 0; j < i; ++j) {
+			if (backupNodes[0] && backupNodes[0].color !== -1)
+				emptyRow = false;
+
+			if (this.nodeExists(firstPaste + j + i))
+				backupNodes.push(this.nodes[firstPaste + j + i]);
+			else backupNodes.push(null);
+
+			var tempNode = backupNodes.shift();
+			this.setNode(firstPaste + i + j, tempNode, false);
+			changes.push({from: firstCopy + j + i, to: firstPaste + j + i});
+		}
+		i *= 2;
+		if (emptyRow)
+			break;
+	}
+
+	firstCopy = (direc === 0) ? this.at('rl', index) : this.at('lr', index);
+	firstPaste = firstCopy + ((direc === 0) ? -1 : +1);
 	i = 1;
 
 	while (2) {
 		var emptyRow = true;
 		for (var j = 0; j < i; ++j) {
 			this.copyNode(firstCopy + j, firstPaste + j);
+			changes.push({from: firstCopy + j, to: firstPaste + j});
 
 			if (this.nodeExists(firstCopy + j)) {
 				emptyRow = false;
@@ -330,21 +251,21 @@ tree.rotateLeft = function rotateLeft (index) {		// Left rotate at nodes[index]
 		firstCopy = 2 * firstCopy + 1;
 		firstPaste = 2 * firstPaste + 1;
 		i *= 2;
-
-		printlog("2", this.getNodes());
 	}
 	
-	firstPaste = 2 * index + 2;
-	firstCopy = 2 * firstPaste + 2;
+	firstPaste = 2 * index + ((direc === 0) ? 2 : 1);
+	firstCopy = 2 * firstPaste + ((direc === 0) ? 2 : 1);
 	i = 1;
 
 	this.copyNode(firstPaste, index);
+	changes.push({from: firstPaste, to: index});
 
 	while (3) {
 		var emptyRow = true;
 
 		for (j = 0; j < i; ++j) {
 			this.copyNode(firstCopy + j, firstPaste + j);
+			changes.push({from: firstCopy + j, to: firstPaste + j});
 
 			if (this.nodeExists(firstCopy + j)) {
 				emptyRow = false;
@@ -353,14 +274,13 @@ tree.rotateLeft = function rotateLeft (index) {		// Left rotate at nodes[index]
 		}
 
 		if (emptyRow) {
-			this.deleteNode(firstCopy + j - 1);
+			this.deleteNode(firstPaste + j - 1);
 			break;
 		}
 
 		i *= 2;
 		firstCopy = 2 * firstCopy + 1;
 		firstPaste = 2 * firstPaste + 1;
-
-		printlog("3", this.getNodes());
 	}
+	return changes;
 }
