@@ -94,6 +94,7 @@ var tree = {
 			}
 		}
 		this.setNode(currNode, new Node(val, col));
+		return [{from: -1, to: currNode}];
 	},
 	searchNode: function searchNode (val) {
 		var end = Math.pow(2, height) - 2;
@@ -123,6 +124,45 @@ var tree = {
 				strNodes += ' ';
 		}
 	},
+	randomize: function randomize (ht, maxDiff = 5, minDiff = 2) {
+		var lastNode = Math.pow(2, ht + 1) - 2;
+		var changes = [];
+
+		this.nodes = [];
+		for (var i = 0; i <= lastNode; ++i) {
+			if (i === 0 || (this.nodeExists(((i - 1) / 2)|0) && Math.random() > 0.1)) {
+				this.nodes[i] = new Node(-1, 0);
+				changes.push({from: -1, to: i});
+			}
+			else
+				this.nodes[i] = null;
+		}
+
+		var iQueue = [0], currNum = 0;
+		i = 1;
+
+		while (iQueue.length > 0) {
+			if (this.nodeExists(i)){
+				iQueue.push(i);
+				i = 2 * i + 1;
+			}
+			else {
+				i = iQueue.pop();
+				currNum += minDiff + ((Math.random() * (maxDiff - minDiff + 1)) | 0);
+				this.nodes[i].value = currNum;
+				i = 2 * i + 2;
+
+				if (this.nodeExists(i)){
+					iQueue.push(i);
+					i = 2 * i + 1;
+				}
+			}
+		}
+		tree.height = ht;
+		return changes;
+	}
+
+	/** OLD RANDOMIZE FUNCTION: 
 	randomize: function randomize (pos, num = 100) {
 		var currLevel = this.levelOf(pos);
 		if (currLevel > this.height) this.height = currLevel;
@@ -130,15 +170,20 @@ var tree = {
 		var lastNode = Math.pow(2, currLevel + 1) - 2;
 
 		for (var i = 0; i <= pos; ++i) {
-			if (!this.nodeExists(i))
-				this.nodes[i] = new Node(0, 0);
-			this.nodes[i].value = Math.random() * (num + 1) | 0;
+			if (i === 0 || (this.nodeExists(((i - 1) / 2)|0) && Math.random() > 0.1)) {
+				if (!this.nodeExists(i))
+					this.nodes[i] = new Node(0, 0);
+				this.nodes[i].value = Math.random() * (num + 1) | 0;
+			}
+			else
+				this.nodes[i] = null;
 		}
 		for(; i <= lastNode; ++i)
 			this.nodes[i] = null;
 
 		return this;
-	}
+	},
+	*/
 };
 
 tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the tree; direc = 0 for left, 1 for right rotation
