@@ -32,11 +32,18 @@ var dimCanvas = {	// Dimensions of canvas
 	height: 0
 };
 
-var dimTree = {		// margins and spacing of tree
+var treeProp = {		// properties of tree as drawn in canvas
 	marginX: 30,
 	marginY: 30,
 	ySpacing: 40,
-	nodeRadius: 12
+	nodeRadius: 12,
+
+	red: "rgb(180, 16, 16)",
+	black: "#000000",
+	stroke: "#000000",
+
+	font: "14px arial narrow",
+	fColor: "#ffffff"
 };
 
 function clearCanvas() {
@@ -45,13 +52,14 @@ function clearCanvas() {
 
 function drawNode (val = 0, x, y, col = 1) {
 	c.beginPath();
-	c.moveTo(x + dimTree.nodeRadius, y);
-	c.arc(x, y, dimTree.nodeRadius, 0, 2 * Math.PI);
-	c.fillStyle = (col === 0) ? "#000000" : "#af2d2f";
+	c.moveTo(x + treeProp.nodeRadius, y);
+	c.arc(x, y, treeProp.nodeRadius, 0, 2 * Math.PI);
+	c.fillStyle = (col === 0) ? treeProp.black : treeProp.red;
 	c.fill();
+	// c.strokeStyle = treeProp.stroke;
 	c.stroke();
 	c.closePath();
-	c.fillStyle = "#ffffff";
+	c.fillStyle = treeProp.fColor;
 	c.fillText(val, x, y);
 }
 
@@ -60,21 +68,21 @@ function drawLine (x1, y1, x2, y2) {
 	var dy = y2 - y1;
 	var len = Math.sqrt(dx*dx + dy*dy);
 
-	x1 += dimTree.nodeRadius * dx / len;
-	x2 -= dimTree.nodeRadius * dx / len;
-	y1 += dimTree.nodeRadius * dy / len;
-	y2 -= dimTree.nodeRadius * dy / len;
+	x1 += treeProp.nodeRadius * dx / len;
+	x2 -= treeProp.nodeRadius * dx / len;
+	y1 += treeProp.nodeRadius * dy / len;
+	y2 -= treeProp.nodeRadius * dy / len;
 
 	c.beginPath();
 	c.moveTo(x1, y1);
 	c.lineTo(x2, y2);
-	c.strokeStyle = "#000000";
+	// c.strokeStyle = treeProp.stroke;
 	c.stroke();
 	c.closePath();
 }
 
 function drawTree(skipChanges = false) {		// Draws the complete tree on canvas
-	var p = {x: dimCanvas.width / 2, y: dimTree.marginY};
+	var p = {x: dimCanvas.width / 2, y: treeProp.marginY};
 	var nodeDist;
 
 	clearCanvas();
@@ -90,15 +98,15 @@ function drawTree(skipChanges = false) {		// Draws the complete tree on canvas
 		if (tree.nodes[i]) {
 			if (!skipdraw) drawNode(tree.nodes[i].value, p.x, p.y);
 			if (i !== 0) {
-				if (i % 2 === 1) drawLine(p.x + nodeDist/2, p.y - dimTree.ySpacing, p.x, p.y);
-				else drawLine(p.x - nodeDist/2, p.y - dimTree.ySpacing, p.x, p.y);
+				if (i % 2 === 1) drawLine(p.x + nodeDist/2, p.y - treeProp.ySpacing, p.x, p.y);
+				else drawLine(p.x - nodeDist/2, p.y - treeProp.ySpacing, p.x, p.y);
 			}
 		}
 		if (i === lastNode) {
 			lastNode = lastNode*2 + 2;
-			nodeDist = (dimCanvas.width - dimTree.marginX - p.x);
-			p.y += dimTree.ySpacing;
-			p.x = dimTree.marginX + nodeDist/2;
+			nodeDist = (dimCanvas.width - treeProp.marginX - p.x);
+			p.y += treeProp.ySpacing;
+			p.x = treeProp.marginX + nodeDist/2;
 			continue;
 		}
 		p.x += nodeDist;
@@ -125,33 +133,29 @@ function printlog(id, data, init = false) {
 	//*/
 }
 
-function reDraw (val, operation) {
-	c.strokeStyle = "#000000";
-	c.fillStyle = "#000000";
-	
-	if (operation === 1) {	  // Insert Operation
-		tree.insertNode(val);
-	}
-
-	printlog('Routine Log', tree.getNodes());
-}
-
 function calcChanges() {
 	if (changes.length === 0) return false;
 
-	var treeWidth = dimCanvas.width - 2 * dimTree.marginX;
+	var treeWidth = dimCanvas.width - 2 * treeProp.marginX;
 
 	changes.sort(function(a, b) {return a.to - b.to});
 
 	for (var i = 0; i < changes.length; ++i) {
-		l1 = tree.levelOf(changes[i].from, true) / 2;
-		l2 = l1 - 1;
-		changes[i].x1 = dimTree.marginX + (changes[i].from - l2 + 0.5) * treeWidth / l1;
+		if (changes[i].from === -1) {
+			changes[i].x1 = dimCanvas.width / 2;
+			changes[i].y1 = dimCanvas.height + treeProp.nodeRadius + 2;
+		}
+		else {
+			l1 = tree.levelOf(changes[i].from, true) / 2;
+			l2 = l1 - 1;
+			changes[i].x1 = treeProp.marginX + (changes[i].from - l2 + 0.5) * treeWidth / l1;
+			changes[i].y1 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].from);
+		}
+
 		l1 = tree.levelOf(changes[i].to, true) / 2;
 		l2 = l1 - 1;
-		changes[i].x2 = dimTree.marginX + (changes[i].to - l2 + 0.5) * treeWidth / l1;
-		changes[i].y1 = dimTree.marginY + dimTree.ySpacing * tree.levelOf(changes[i].from);
-		changes[i].y2 = dimTree.marginY + dimTree.ySpacing * tree.levelOf(changes[i].to);
+		changes[i].x2 = treeProp.marginX + (changes[i].to - l2 + 0.5) * treeWidth / l1;
+		changes[i].y2 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].to);
 	}
 }
 
@@ -174,12 +178,14 @@ function animChange() {
 		progress += 0.02;
 		drawTree(true);
 
+		p = (1 - Math.cos(Math.PI * progress)) / 2;
+
 		for (var i = 0; i < len; ++i) {
 			if (tree.nodes[changes[i].to] === null) continue;
 
 			var v = tree.nodes[changes[i].to].value;
-			var x = changes[i].x1 + (changes[i].x2 - changes[i].x1) * progress;
-			var y = changes[i].y1 + (changes[i].y2 - changes[i].y1) * progress;
+			var x = changes[i].x1 + (changes[i].x2 - changes[i].x1) * p;
+			var y = changes[i].y1 + (changes[i].y2 - changes[i].y1) * p;
 			drawNode(v, x, y);
 		}
 
@@ -189,6 +195,18 @@ function animChange() {
 			return;
 		}
 	}, 10);
+}
+
+function reDraw (val, operation) {
+	c.strokeStyle = "#000000";
+	c.fillStyle = "#000000";
+	
+	if (operation === 1) {	  // Insert Operation
+		changes = tree.insertNode(val);
+		animChange();
+	}
+
+	printlog('Routine Log', tree.getNodes());
 }
 
 function updateTree() {
@@ -204,16 +222,16 @@ function updateTree() {
 }
 
 function button1() {
-	tree.randomize(14);
-	printlog("Randomized", tree.randomize(30).getNodes());
+	changes = tree.randomize(4);
+	animChange();
 }
 function button2() {
-	changes = tree.rotate(parseInt(document.getElementById("nodeValue").value), 1);
+	changes = tree.rotate(parseInt(document.getElementById("nodeValue").value), 0);
 	console.log(tree.height);
 	animChange();
 }
 function button3() {
-	changes = tree.rotate(parseInt(document.getElementById("nodeValue").value), 0);
+	changes = tree.rotate(parseInt(document.getElementById("nodeValue").value), 1);
 	console.log(tree.height);
 	animChange();
 }
@@ -227,13 +245,11 @@ window.onload = function initCanvas() {
 
 	c.textAlign = "center";
 	c.textBaseline = "middle";
-	c.font = "14px arial narrow";
-	c.strokeStyle = "#000000";
+	c.font = treeProp.font;
+	c.strokeStyle = treeProp.stroke;
 
 	dimCanvas.width = parseInt(canv.width);
 	dimCanvas.height = parseInt(canv.height);
 
 	printlog(0, 0, true);
 }
-
-
