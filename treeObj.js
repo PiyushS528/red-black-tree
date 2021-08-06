@@ -1,7 +1,10 @@
 
-function Node (val = 0, col = -1) {		// Node class
+function Node (val = 0, col = -1, x = -1, y = -1, cvalue = "#000000") {		// Node class
 	this.value = val;
 	this.color = col;	   // 0=> black;  1=> red;  -1 or any other value=> Node does not exist
+	this.x = x;
+	this.y = y;
+	this.cvalue = cvalue;
 
 	this.changeCol = function changeCol (col) {	 // set the color or toggle between red and black
 		if (col) {
@@ -112,42 +115,28 @@ var tree = {
 				strNodes += ' ';
 		}
 	},
-	randomize: function randomize (ht, maxDiff = 5, minDiff = 2) {
-		var lastNode = Math.pow(2, ht + 1) - 2;
+	randomize: function randomize(numNodes = 16, maxDiff = 6, minDiff = 3) {
 		var changes = [];
+		var nodeValues = [];
 
 		this.nodes = [];
-		for (var i = 0; i <= lastNode; ++i) {
-			if (i === 0 || (this.nodeExists(((i - 1) / 2)|0) && Math.random() > 0.1)) {
-				this.nodes[i] = new Node(-1, 0);
+		var currNum = 0;
+
+		for (var i = 0; i <= numNodes; ++i) {
+			currNum += minDiff + ((Math.random() * (maxDiff - minDiff + 1)) | 0);
+			nodeValues.push(currNum);
+		}
+		for (var i = 0; i <= numNodes; ++i) {
+			var iRand = (Math.random() * (numNodes - i)) | 0;
+			var insertGen = this.insertNode(nodeValues[iRand]);
+			while (insertGen.next().value);
+			nodeValues.splice(iRand, 1);
+		}
+		for (i = 0; i < this.nodes.length; ++i) {
+			if (this.nodeExists(i)) {
 				changes.push({from: -1, node: i});
 			}
-			else
-				this.nodes[i] = null;
 		}
-
-		var iQueue = [0], currNum = 0;
-		i = 1;
-
-		while (iQueue.length > 0) {
-			if (this.nodeExists(i)){
-				iQueue.push(i);
-				i = 2 * i + 1;
-			}
-			else {
-				i = iQueue.pop();
-				currNum += minDiff + ((Math.random() * (maxDiff - minDiff + 1)) | 0);
-				this.nodes[i].value = currNum;
-				this.nodes[i].color = (2 * Math.random()) | 0;
-				i = 2 * i + 2;
-
-				if (this.nodeExists(i)){
-					iQueue.push(i);
-					i = 2 * i + 1;
-				}
-			}
-		}
-		tree.height = ht;
 		return changes;
 	},
 	erase: function erase() {
@@ -271,8 +260,8 @@ tree.insertNode = function *insertNode (val, col = 1) {
 	}
 }
 tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the tree; direc = 0 for left, 1 for right rotation
-	if (direc === 0 && !this.nodeExists(index*2 + 2)) return;
-	if (direc === 1 && !this.nodeExists(index*2 + 1)) return;
+	if (direc === 0 && !this.nodeExists(index*2 + 2)) return [];
+	if (direc === 1 && !this.nodeExists(index*2 + 1)) return [];
 
 	var changes = [];	// Records the before and after indices of nodes that are moved during rotation
 
@@ -282,82 +271,90 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 
 	backupNodes.push(this.nodes[firstPaste]);
 
-	this.copyNode(firstCopy, firstPaste);
+	var doStep1 = false;
+
+	if (this.nodeExists(firstCopy)) {
+		this.copyNode(firstCopy, firstPaste);
+		changes.push({from: firstCopy, node: firstPaste});
+		doStep1 = true;
+	}
+
 	this.copyNode(index, firstCopy);
-	changes.push({from: firstCopy, node: firstPaste});
 	changes.push({from: index, node: firstCopy});
 
 	var i = 1;
 
-	if (direc === 0) while (1) {
-		firstCopy = firstCopy * 2 + 1;
-		firstPaste = firstPaste * 2 + 1;
+	if (doStep1) {
+		if (direc === 0) while (1) {
+			firstCopy = firstCopy * 2 + 1;
+			firstPaste = firstPaste * 2 + 1;
 
-		var emptyRow = true;
+			var emptyRow = true;
 
-		for (var j = 0; j < i; ++j) {
-			if (backupNodes[0] && backupNodes[0].color !== -1)
+			for (var j = 0; j < i; ++j) {
+				if (backupNodes[0] && backupNodes[0].color !== -1)
 				emptyRow = false;
 
-			if (this.nodeExists(firstPaste + j))
-				backupNodes.push(this.nodes[firstPaste + j]);
-			else backupNodes.push(null);
+				if (this.nodeExists(firstPaste + j))
+					backupNodes.push(this.nodes[firstPaste + j]);
+				else backupNodes.push(null);
 
-			var tempNode = backupNodes.shift();
-			this.setNode(firstPaste + j, tempNode, false);
-			changes.push({from: firstCopy + j, node: firstPaste + j});
-		}
-		for (var j = 0; j < i; ++j) {
-			if (this.nodeExists(firstPaste + j + i))
-				backupNodes.push(this.nodes[firstPaste + j + i]);
-			else backupNodes.push(null);
-
-			this.copyNode(firstCopy + j + i, firstPaste + j + i);
-			changes.push({from: firstCopy + j + i, node: firstPaste + j + i});
-
-			if (this.nodeExists(firstCopy + j + i)) {
-				emptyRow = false;
-				this.deleteNode(firstCopy + j + i, false);
+				var tempNode = backupNodes.shift();
+				this.setNode(firstPaste + j, tempNode, false);
+				changes.push({from: firstCopy + j, node: firstPaste + j});
 			}
-		}
-		i *= 2;
-		if (emptyRow)
-			break;
-	}
-	else while (1) {
-		firstCopy = firstCopy * 2 + 1;
-		firstPaste = firstPaste * 2 + 1;
+			for (var j = 0; j < i; ++j) {
+				if (this.nodeExists(firstPaste + j + i))
+					backupNodes.push(this.nodes[firstPaste + j + i]);
+				else backupNodes.push(null);
 
-		var emptyRow = true;
+				this.copyNode(firstCopy + j + i, firstPaste + j + i);
+				changes.push({from: firstCopy + j + i, node: firstPaste + j + i});
 
-		for (var j = 0; j < i; ++j) {
-			if (this.nodeExists(firstPaste + j))
-				backupNodes.push(this.nodes[firstPaste + j]);
-			else backupNodes.push(null);
-
-			this.copyNode(firstCopy + j, firstPaste + j);
-			changes.push({from: firstCopy + j, node: firstPaste + j});
-
-			if (this.nodeExists(firstCopy + j)) {
-				emptyRow = false;
-				this.deleteNode(firstCopy + j, false);
+				if (this.nodeExists(firstCopy + j + i)) {
+					emptyRow = false;
+					this.deleteNode(firstCopy + j + i, false);
+				}
 			}
+			i *= 2;
+			if (emptyRow)
+				break;
 		}
-		for (var j = 0; j < i; ++j) {
-			if (backupNodes[0] && backupNodes[0].color !== -1)
-				emptyRow = false;
+		else while (1) {
+			firstCopy = firstCopy * 2 + 1;
+			firstPaste = firstPaste * 2 + 1;
 
-			if (this.nodeExists(firstPaste + j + i))
+			var emptyRow = true;
+
+			for (var j = 0; j < i; ++j) {
+				if (this.nodeExists(firstPaste + j))
+					backupNodes.push(this.nodes[firstPaste + j]);
+				else backupNodes.push(null);
+
+				this.copyNode(firstCopy + j, firstPaste + j);
+				changes.push({from: firstCopy + j, node: firstPaste + j});
+
+				if (this.nodeExists(firstCopy + j)) {
+					emptyRow = false;
+					this.deleteNode(firstCopy + j, false);
+				}
+			}
+			for (var j = 0; j < i; ++j) {
+				if (backupNodes[0] && backupNodes[0].color !== -1)
+					emptyRow = false;
+
+				if (this.nodeExists(firstPaste + j + i))
 				backupNodes.push(this.nodes[firstPaste + j + i]);
-			else backupNodes.push(null);
+				else backupNodes.push(null);
 
-			var tempNode = backupNodes.shift();
-			this.setNode(firstPaste + i + j, tempNode, false);
-			changes.push({from: firstCopy + j + i, node: firstPaste + j + i});
+				var tempNode = backupNodes.shift();
+				this.setNode(firstPaste + i + j, tempNode, false);
+				changes.push({from: firstCopy + j + i, node: firstPaste + j + i});
+			}
+			i *= 2;
+			if (emptyRow)
+				break;
 		}
-		i *= 2;
-		if (emptyRow)
-			break;
 	}
 
 	firstCopy = (direc === 0) ? this.at('rl', index) : this.at('lr', index);
@@ -367,10 +364,9 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 	while (2) {
 		var emptyRow = true;
 		for (var j = 0; j < i; ++j) {
-			this.copyNode(firstCopy + j, firstPaste + j);
-			changes.push({from: firstCopy + j, node: firstPaste + j});
-
 			if (this.nodeExists(firstCopy + j)) {
+				this.copyNode(firstCopy + j, firstPaste + j);
+				changes.push({from: firstCopy + j, node: firstPaste + j});
 				emptyRow = false;
 				this.deleteNode(firstCopy + j, false);
 			}
@@ -393,10 +389,9 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 		var emptyRow = true;
 
 		for (j = 0; j < i; ++j) {
-			this.copyNode(firstCopy + j, firstPaste + j);
-			changes.push({from: firstCopy + j, node: firstPaste + j});
-
 			if (this.nodeExists(firstCopy + j)) {
+				this.copyNode(firstCopy + j, firstPaste + j);
+				changes.push({from: firstCopy + j, node: firstPaste + j});
 				emptyRow = false;
 				this.deleteNode(firstCopy + j, false);	// We don't want deleteNode to recalculate the height since there could be more child nodes left that we need to move up
 			}
