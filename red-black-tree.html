@@ -9,7 +9,10 @@
 			body, button {
 				background: rgb(44, 70, 15);
 				color: rgb(172, 224, 114);
-				font-family: bookman old style, serif;
+				font-family: segoe ui light, sans-serif;
+			}
+			h1 {
+				text-align: center;
 			}
 			#canvasArea {
 				border: 1px solid #000000;
@@ -21,7 +24,7 @@
 	<body>
 		<main>
 			<h1> Red Black Trees</h1>
-			<h3> Visual Demonstration of basic operations on Red-Black Trees </h3>
+			<p> Visual Demonstration of basic operations on Red-Black Trees </p>
 			<canvas id="canvasArea" width=800 height=400> Canvas is not supported on your browser </canvas> <br><br>
 
 			<label for="insert"> Insert </label>
@@ -38,7 +41,8 @@
 			<button onclick="button1()">Randomize</button>
 			<button onclick="button2()">Rotate left</button>
 			<button onclick="button3()">Rotate right</button>
-			<button onclick="button4()">Draw on canvas</button><br>
+			<button onclick="button4()">Draw on canvas</button>
+			<button onclick="button5()">Erase tree</button><br>
 
 			<div id="log"></div>
 		</main>
