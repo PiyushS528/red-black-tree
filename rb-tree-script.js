@@ -26,6 +26,7 @@ var tree = {
 var c;		// = canvas.getContext("2d")
 var animInterval;
 var changes = [];		// keeps a record of indices and coordinates for nodes that are moved during certain tree operations
+var progress = [];
 
 var dimCanvas = {	// Dimensions of canvas
 	width: 0,
@@ -40,7 +41,7 @@ var treeProp = {		// properties of tree as drawn in canvas
 
 	red: "rgb(180, 16, 16)",
 	black: "#000000",
-	stroke: "#000000",
+	stroke: "#ffffff",
 
 	font: "14px arial narrow",
 	fColor: "#ffffff"
@@ -54,7 +55,10 @@ function drawNode (val = 0, x, y, col = 1) {
 	c.beginPath();
 	c.moveTo(x + treeProp.nodeRadius, y);
 	c.arc(x, y, treeProp.nodeRadius, 0, 2 * Math.PI);
-	c.fillStyle = (col === 0) ? treeProp.black : treeProp.red;
+	if (col !== 0 && col !== 1)
+		c.fillStyle = col;
+	else
+		c.fillStyle = (col === 0) ? treeProp.black : treeProp.red;
 	c.fill();
 	// c.strokeStyle = treeProp.stroke;
 	c.stroke();
@@ -91,12 +95,12 @@ function drawTree(skipChanges = false) {		// Draws the complete tree on canvas
 
 	for (var i = 0; i < tree.nodes.length; ++i) {
 		var skipdraw = false;
-		if (skipChanges && changes && changes[cIndex] && i === changes[cIndex].to) {
+		if (skipChanges && changes && changes[cIndex] && i === changes[cIndex].node) {
 			skipdraw = true;
 			++cIndex;
 		}
 		if (tree.nodes[i]) {
-			if (!skipdraw) drawNode(tree.nodes[i].value, p.x, p.y);
+			if (!skipdraw) drawNode(tree.nodes[i].value, p.x, p.y, tree.nodes[i].color);
 			if (i !== 0) {
 				if (i % 2 === 1) drawLine(p.x + nodeDist/2, p.y - treeProp.ySpacing, p.x, p.y);
 				else drawLine(p.x - nodeDist/2, p.y - treeProp.ySpacing, p.x, p.y);
@@ -138,28 +142,45 @@ function calcChanges() {
 
 	var treeWidth = dimCanvas.width - 2 * treeProp.marginX;
 
-	changes.sort(function(a, b) {return a.to - b.to});
+	changes.sort(function(a, b) {return a.node - b.node});
 
-	for (var i = 0; i < changes.length; ++i) {
-		if (changes[i].from === -1) {
-			changes[i].x1 = dimCanvas.width / 2;
-			changes[i].y1 = dimCanvas.height + treeProp.nodeRadius + 2;
-		}
-		else {
-			l1 = tree.levelOf(changes[i].from, true) / 2;
+	if (!changes[0]) return;
+
+	if (changes[0].from !== undefined) {
+		for (var i = 0; i < changes.length; ++i) {
+			if (changes[i].from === -1) {
+				changes[i].x1 = dimCanvas.width / 2;
+				changes[i].y1 = dimCanvas.height + treeProp.nodeRadius + 2;
+			}
+			else {
+				l1 = tree.levelOf(changes[i].from, true) / 2;
+				l2 = l1 - 1;
+				changes[i].x1 = treeProp.marginX + (changes[i].from - l2 + 0.5) * treeWidth / l1;
+				changes[i].y1 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].from);
+			}
+
+			l1 = tree.levelOf(changes[i].node, true) / 2;
 			l2 = l1 - 1;
-			changes[i].x1 = treeProp.marginX + (changes[i].from - l2 + 0.5) * treeWidth / l1;
-			changes[i].y1 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].from);
+			changes[i].x2 = treeProp.marginX + (changes[i].node - l2 + 0.5) * treeWidth / l1;
+			changes[i].y2 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].node);
 		}
-
-		l1 = tree.levelOf(changes[i].to, true) / 2;
-		l2 = l1 - 1;
-		changes[i].x2 = treeProp.marginX + (changes[i].to - l2 + 0.5) * treeWidth / l1;
-		changes[i].y2 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].to);
+	}
+	else if (changes[0].color !== undefined) {
+		for (var i = 0; i < changes.length; ++i) {
+			l1 = tree.levelOf(changes[i].node, true) / 2;
+			l2 = l1 - 1;
+			changes[i].x = treeProp.marginX + (changes[i].node - l2 + 0.5) * treeWidth / l1;
+			changes[i].y = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].node);
+		}
 	}
 }
 
-function animChange() {
+function animChange(args = {delay: 10, delete: false, lagFrames: 0}) {
+	if (args.delay === undefined) args.delay = 10;
+	if (args.delete === undefined) args.delete = false;
+	if (args.lagFrames === undefined) args.lagFrames = 0;
+
+	console.log(args);
 	if (!changes) {
 		clearInterval(animInterval);
 		drawTree();
@@ -167,46 +188,96 @@ function animChange() {
 	}
 	if (animInterval) {
 		clearInterval(animInterval);
+		return;
+	}
+
+	if (args.generator) {
+		var nextVal = args.generator.next();
+		if (!nextVal.value) return;
+		changes = nextVal.value;
+		console.log('changes:', changes);
 	}
 
 	var len = changes.length;
-	var progress = 0.0;
+	var k = 0;
 
 	calcChanges();
 
-	animInterval = setInterval( function() {
-		progress += 0.02;
-		drawTree(true);
+	if (changes[0].from !== undefined) {
+		animInterval = setInterval( function() {
+			if (args.lagFrames > 0) --args.lagFrames;
+			else {
+				drawTree(true);
 
-		p = (1 - Math.cos(Math.PI * progress)) / 2;
+				for (var i = 0; i < len; ++i) {
+					if (tree.nodes[changes[i].node] === null) continue;
 
-		for (var i = 0; i < len; ++i) {
-			if (tree.nodes[changes[i].to] === null) continue;
+					var v = tree.nodes[changes[i].node].value;
+					var x = changes[i].x1 + (changes[i].x2 - changes[i].x1) * progress[k];
+					var y = changes[i].y1 + (changes[i].y2 - changes[i].y1) * progress[k];
+					var col = tree.nodes[changes[i].node].color;
+					drawNode(v, x, y, col);
+				}
 
-			var v = tree.nodes[changes[i].to].value;
-			var x = changes[i].x1 + (changes[i].x2 - changes[i].x1) * p;
-			var y = changes[i].y1 + (changes[i].y2 - changes[i].y1) * p;
-			drawNode(v, x, y);
-		}
+				k += 1;
+				if (k >= progress.length) {
+					clearInterval(animInterval);
+					if (args.delete) changes = [];
+					animInterval = null;
+					if (args.generator) animChange({delay: args.delay, delete: args.delete, generator: args.generator, lagFrames: 20});
+					else return;
+				}
+			}
+		}, args.delay);
+	}
+	else if (changes[0].color !== undefined) {
+		animInterval = setInterval( function() {
+			if (args.lagFrames > 0) --args.lagFrames;
+			else {
+				drawTree(true);
 
-		if (progress >= 1.0) {
-			clearInterval(animInterval);
-			animInterval = null;
-			return;
-		}
-	}, 10);
+				for (var i = 0; i < len; ++i) {
+					if (tree.nodes[changes[i].node] === null) continue;
+
+					var v = tree.nodes[changes[i].node].value;
+					var x = changes[i].x;
+					var y = changes[i].y;
+					var col, r, g, b;
+					if (changes[i].color === 0) {
+						r = (treeProp.r1 + (treeProp.r0-treeProp.r1) * progress[k]);
+						g = (treeProp.g1 + (treeProp.g0-treeProp.g1) * progress[k]);
+						b = (treeProp.b1 + (treeProp.b0-treeProp.b1) * progress[k]);
+					}
+					else {
+						r = (treeProp.r0 + (treeProp.r1-treeProp.r0) * progress[k]);
+						g = (treeProp.g0 + (treeProp.g1-treeProp.g0) * progress[k]);
+						b = (treeProp.b0 + (treeProp.b1-treeProp.b0) * progress[k]);
+					}
+					col = 'rgb(' + r + ',' + g + ',' + b + ')';
+					drawNode(v, x, y, col);
+				}
+
+				k += 1;
+				if (k >= progress.length) {
+					clearInterval(animInterval);
+					if (args.delete) changes = [];
+					animInterval = null;
+					if (args.generator) animChange({delay: args.delay, delete: args.delete, generator: args.generator, lagFrames: 20});
+					else return;
+				}
+			}
+		}, args.delay);
+	}
 }
 
 function reDraw (val, operation) {
-	c.strokeStyle = "#000000";
-	c.fillStyle = "#000000";
-	
 	if (operation === 1) {	  // Insert Operation
-		changes = tree.insertNode(val);
-		animChange();
+		var sequencedIns = tree.insertNode(val);
+
+		animChange({generator: sequencedIns});
 	}
 
-	printlog('Routine Log', tree.getNodes());
+	// printlog('Routine Log', tree.getNodes());
 }
 
 function updateTree() {
@@ -238,6 +309,53 @@ function button3() {
 function button4() {
 	drawTree();
 }
+function button5() {
+	tree.erase();
+	drawTree();
+}
+
+function parseColors() {
+	var black = treeProp.black;
+	if (black[0] === '#') {
+		black = black.split('#')[1];
+		if (black.length === 6) {
+			treeProp.r0 = parseInt(black.substr(0, 2), 16);
+			treeProp.g0 = parseInt(black.substr(2, 2), 16);
+			treeProp.b0 = parseInt(black.substr(4, 2), 16);
+		}
+		else if (black.length === 3) {
+			treeProp.r0 = parseInt(black.substr(0, 1) + black.substr(0, 1), 16);
+			treeProp.g0 = parseInt(black.substr(1, 1) + black.substr(1, 1), 16);
+			treeProp.b0 = parseInt(black.substr(2, 1) + black.substr(2, 1), 16);
+		}
+	}
+	else if (black.search(/rgb/i) >= 0) {
+		black = black.split('(')[1].split(',');
+		treeProp.r0 = parseInt(black[0]);
+		treeProp.g0 = parseInt(black[1]);
+		treeProp.b0 = parseInt(black[2]);
+	}
+	var red = treeProp.red;
+	if (red[0] === '#') {
+		red = red.split('#')[1];
+		if (red.length === 6) {
+			treeProp.r1 = parseInt(red.substr(0, 2), 16);
+			treeProp.g1 = parseInt(red.substr(2, 2), 16);
+			treeProp.b1 = parseInt(red.substr(4, 2), 16);
+		}
+		else if (red.length === 3) {
+			treeProp.r1 = parseInt(red.substr(0, 1) + red.substr(0, 1), 16);
+			treeProp.g1 = parseInt(red.substr(1, 1) + red.substr(1, 1), 16);
+			treeProp.b1 = parseInt(red.substr(2, 1) + red.substr(2, 1), 16);
+		}
+	}
+	else if (red.search(/rgb/i) >= 0) {
+		red = red.split('(')[1].split(',');
+		treeProp.r1 = parseInt(red[0]);
+		treeProp.g1 = parseInt(red[1]);
+		treeProp.b1 = parseInt(red[2]);
+	}
+}
 
 window.onload = function initCanvas() {
 	var canv = document.getElementById("canvasArea");
@@ -251,5 +369,15 @@ window.onload = function initCanvas() {
 	dimCanvas.width = parseInt(canv.width);
 	dimCanvas.height = parseInt(canv.height);
 
-	printlog(0, 0, true);
+	var k = 0;
+	while (true) {
+		p = (1 - Math.cos(Math.PI * k)) / 2;
+		progress.push(p);
+		k += 0.02;
+
+		if (k > 1.0) break;
+	}
+
+	parseColors();
+	// printlog(0, 0, true);
 }
