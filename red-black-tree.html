@@ -25,24 +25,16 @@
 		<main>
 			<h1> Red Black Trees</h1>
 			<p> Visual Demonstration of basic operations on Red-Black Trees </p>
-			<canvas id="canvasArea" width=800 height=400> Canvas is not supported on your browser </canvas> <br><br>
-
-			<label for="insert"> Insert </label>
-			<input type="radio" name="operation" id="insert" checked>
-			<label for="delete"> Delete </label>
-			<input type="radio" name="operation" id="delete">
-			<label for="search"> Search </label>
-			<input type="radio" name="operation" id="search"> <br>
+			<canvas id="canvasArea" width=1600 height=800> Canvas is not supported on your browser </canvas> <br><br>
 			
-			<input type="number" value="2" id="nodeValue">
+			<input type="number" value="20" id="nodeValue"> &nbsp;
 
-			<button id="update" onclick="updateTree()"> Update </button>
-
-			<button onclick="button1()">Randomize</button>
-			<button onclick="button2()">Rotate left</button>
-			<button onclick="button3()">Rotate right</button>
-			<button onclick="button4()">Draw on canvas</button>
-			<button onclick="button5()">Erase tree</button><br>
+			<button onclick="updateTree(1)">Insert</button>
+			<button onclick="updateTree(4)">Randomize</button>
+			<button onclick="updateTree(5)">Erase tree</button>
+			<button onclick="updateTree(6)">Rotate left</button>
+			<button onclick="updateTree(7)">Rotate right</button>
+			<button onclick="reDraw(null, 8)">Re-do last</button><br>
 
 			<div id="log"></div>
 		</main>
