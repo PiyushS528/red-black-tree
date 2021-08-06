@@ -20,11 +20,15 @@ var tree = {
 	nodes: [],	// Stores all nodes in array binary tree form
 	height: 0,	// Stores height of tree
 
-	at: function at (strPos, initIndex) {		// takes a string of 'l's and 'r's for successive left or right child elements respectively and returns its index number in nodes (tree) array.
+	at: function at (strPos, initIndex) {		// takes a string of 'l's and 'r's or 'p's for successive left or right child or parent elements respectively and returns its index number in nodes (tree) array.
 		var index = initIndex || 0;
 		for (var i = 0; i < strPos.length; ++i) {
-			index *= 2;
-			index += (strPos[i] === 'l' || strPos[i] === 'L') ? 1 : 2;
+			if (strPos[i] === 'p' || strPos[i] === 'P')
+				index = ((index-1)/2) |0;
+			else {
+				index *= 2;
+				index += (strPos[i] === 'l' || strPos[i] === 'L') ? 1 : 2;
+			}
 		}
 		return index;
 	},
@@ -80,22 +84,6 @@ var tree = {
 			if (this.height < 0) this.height = 0;
 		}
 	},
-	insertNode: function insertNode (val, col = 0) {
-		var currNode = 0;
-
-		if (!this.nodeExists(currNode))
-			this.setNode(currNode, new Node(val, col));
-		else {
-			while (this.nodeExists(currNode)) {
-				if (val <= this.nodes[currNode].value)
-					currNode = currNode * 2 + 1;
-				else
-					currNode = currNode * 2 + 2;
-			}
-		}
-		this.setNode(currNode, new Node(val, col));
-		return [{from: -1, to: currNode}];
-	},
 	searchNode: function searchNode (val) {
 		var end = Math.pow(2, height) - 2;
 		for (i = 0; i <= end; ++i) {
@@ -132,7 +120,7 @@ var tree = {
 		for (var i = 0; i <= lastNode; ++i) {
 			if (i === 0 || (this.nodeExists(((i - 1) / 2)|0) && Math.random() > 0.1)) {
 				this.nodes[i] = new Node(-1, 0);
-				changes.push({from: -1, to: i});
+				changes.push({from: -1, node: i});
 			}
 			else
 				this.nodes[i] = null;
@@ -150,6 +138,7 @@ var tree = {
 				i = iQueue.pop();
 				currNum += minDiff + ((Math.random() * (maxDiff - minDiff + 1)) | 0);
 				this.nodes[i].value = currNum;
+				this.nodes[i].color = (2 * Math.random()) | 0;
 				i = 2 * i + 2;
 
 				if (this.nodeExists(i)){
@@ -160,32 +149,127 @@ var tree = {
 		}
 		tree.height = ht;
 		return changes;
-	}
-
-	/** OLD RANDOMIZE FUNCTION: 
-	randomize: function randomize (pos, num = 100) {
-		var currLevel = this.levelOf(pos);
-		if (currLevel > this.height) this.height = currLevel;
-
-		var lastNode = Math.pow(2, currLevel + 1) - 2;
-
-		for (var i = 0; i <= pos; ++i) {
-			if (i === 0 || (this.nodeExists(((i - 1) / 2)|0) && Math.random() > 0.1)) {
-				if (!this.nodeExists(i))
-					this.nodes[i] = new Node(0, 0);
-				this.nodes[i].value = Math.random() * (num + 1) | 0;
-			}
-			else
-				this.nodes[i] = null;
-		}
-		for(; i <= lastNode; ++i)
-			this.nodes[i] = null;
-
-		return this;
 	},
-	*/
+	erase: function erase() {
+		this.nodes = [];
+		this.height = 0;
+	}
 };
 
+tree.insertNode = function *insertNode (val, col = 1) {
+	var currNode = 0;
+	var changes = [];
+
+	if (!this.nodeExists(0)) {
+		col = 0
+		this.setNode(0, new Node(val, col));
+	}
+	else {
+		while (this.nodeExists(currNode)) {
+			if (val <= this.nodes[currNode].value)
+				currNode = currNode * 2 + 1;
+			else
+				currNode = currNode * 2 + 2;
+		}
+	}
+	this.setNode(currNode, new Node(val, col));
+	changes.push({from: -1, node: currNode});
+	yield changes;
+
+	if (currNode <= 2) return;
+
+	var parent = ((currNode - 1) / 2) | 0;
+	var grand = ((parent - 1) / 2) | 0;
+	var uncle = parent + ((parent%2 === 1) ? +1 : -1);
+
+	console.log(currNode, parent, grand, uncle);
+
+	while (this.nodes[currNode].color === 1 && this.nodes[parent].color === 1) {
+		changes = [];
+		if (this.nodes[uncle] && this.nodes[uncle].color === 1) {			// If uncle node is also red.
+			this.nodes[parent].changeCol();
+			this.nodes[grand].changeCol();
+			this.nodes[uncle].changeCol();
+
+			changes.push({node: parent, color: 0});
+			changes.push({node: grand, color: 1});
+			changes.push({node: uncle, color: 0});
+
+			yield changes;
+		}
+		else {
+			if (parent%2 === 1) {		// parent is a left child of grandparent
+				if (currNode%2 === 1) {		//current node is a left child of parent
+					changes = this.rotate(grand, 1);
+					yield changes;
+
+					changes = [];
+					this.nodes[grand].changeCol();		// after rotation of tree, the variable 'grand' refers to parent of current child and 'uncle' becomes sibling
+					this.nodes[uncle].changeCol();
+					changes.push({node: grand, color: 0});
+					changes.push({node: uncle, color: 1});
+					yield changes;
+					break;
+				}
+				else {			// current is a right child of parent
+					changes = this.rotate(parent, 0);
+					yield changes;
+
+					changes = this.rotate(grand, 1);
+					yield changes;
+
+					changes = [];
+					this.nodes[grand].changeCol();
+					this.nodes[uncle].changeCol();
+					changes.push({node: grand, color: 0});
+					changes.push({node: uncle, color: 1});
+					yield changes;
+					break;
+				}
+			}
+			else {		// parent is a right child of grandparent
+				if (currNode%2 === 0) {
+					changes = this.rotate(grand, 0);
+					yield changes;
+
+					changes = [];
+					this.nodes[grand].changeCol();
+					this.nodes[uncle].changeCol();
+					changes.push({node: grand, color: 0});
+					changes.push({node: uncle, color: 1});
+					yield changes;
+					break;
+				}
+				else {
+					changes = this.rotate(parent, 1);
+					yield changes;
+
+					changes = this.rotate(grand, 0);
+					yield changes;
+
+					changes = [];
+					this.nodes[grand].changeCol();
+					this.nodes[uncle].changeCol();
+					changes.push({node: grand, color: 0});
+					changes.push({node: uncle, color: 1});
+					yield changes;
+					break;
+				}
+			}
+		}
+		currNode = grand;
+		if (currNode <= 2) break;
+		parent = ((currNode - 1) / 2) | 0;
+		grand = ((parent - 1) / 2) | 0;
+		uncle = parent + ((parent%2 === 1) ? +1 : -1);
+	}
+	if (this.nodes[0].color === 1) {
+		this.nodes[0].color = 0;
+		changes = [];
+		changes.push({node: 0, color: 0});
+		yield changes;
+	}
+}
 tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the tree; direc = 0 for left, 1 for right rotation
 	if (direc === 0 && !this.nodeExists(index*2 + 2)) return;
 	if (direc === 1 && !this.nodeExists(index*2 + 1)) return;
@@ -200,8 +284,8 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 
 	this.copyNode(firstCopy, firstPaste);
 	this.copyNode(index, firstCopy);
-	changes.push({from: firstCopy, to: firstPaste});
-	changes.push({from: index, to: firstCopy});
+	changes.push({from: firstCopy, node: firstPaste});
+	changes.push({from: index, node: firstCopy});
 
 	var i = 1;
 
@@ -221,7 +305,7 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 
 			var tempNode = backupNodes.shift();
 			this.setNode(firstPaste + j, tempNode, false);
-			changes.push({from: firstCopy + j, to: firstPaste + j});
+			changes.push({from: firstCopy + j, node: firstPaste + j});
 		}
 		for (var j = 0; j < i; ++j) {
 			if (this.nodeExists(firstPaste + j + i))
@@ -229,7 +313,7 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 			else backupNodes.push(null);
 
 			this.copyNode(firstCopy + j + i, firstPaste + j + i);
-			changes.push({from: firstCopy + j + i, to: firstPaste + j + i});
+			changes.push({from: firstCopy + j + i, node: firstPaste + j + i});
 
 			if (this.nodeExists(firstCopy + j + i)) {
 				emptyRow = false;
@@ -252,7 +336,7 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 			else backupNodes.push(null);
 
 			this.copyNode(firstCopy + j, firstPaste + j);
-			changes.push({from: firstCopy + j, to: firstPaste + j});
+			changes.push({from: firstCopy + j, node: firstPaste + j});
 
 			if (this.nodeExists(firstCopy + j)) {
 				emptyRow = false;
@@ -269,7 +353,7 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 
 			var tempNode = backupNodes.shift();
 			this.setNode(firstPaste + i + j, tempNode, false);
-			changes.push({from: firstCopy + j + i, to: firstPaste + j + i});
+			changes.push({from: firstCopy + j + i, node: firstPaste + j + i});
 		}
 		i *= 2;
 		if (emptyRow)
@@ -284,7 +368,7 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 		var emptyRow = true;
 		for (var j = 0; j < i; ++j) {
 			this.copyNode(firstCopy + j, firstPaste + j);
-			changes.push({from: firstCopy + j, to: firstPaste + j});
+			changes.push({from: firstCopy + j, node: firstPaste + j});
 
 			if (this.nodeExists(firstCopy + j)) {
 				emptyRow = false;
@@ -303,14 +387,14 @@ tree.rotate = function rotate (index, direc = 0) {		// Performs rotation of the 
 	i = 1;
 
 	this.copyNode(firstPaste, index);
-	changes.push({from: firstPaste, to: index});
+	changes.push({from: firstPaste, node: index});
 
 	while (3) {
 		var emptyRow = true;
 
 		for (j = 0; j < i; ++j) {
 			this.copyNode(firstCopy + j, firstPaste + j);
-			changes.push({from: firstCopy + j, to: firstPaste + j});
+			changes.push({from: firstCopy + j, node: firstPaste + j});
 
 			if (this.nodeExists(firstCopy + j)) {
 				emptyRow = false;
