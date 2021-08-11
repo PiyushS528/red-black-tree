@@ -1,8 +1,16 @@
+/* **** TO DO ****
+
+- SEARCH FUNCTION WITH ANIMATION
+- IMPLEMENT INSERTION AND DELETION FUNCTIONS WITHOUT GENERATORS
+- BETTER WAY TO IMPLEMENT CHANGES[] ARRAY FOR ANIMATION
+
+ **************** */
+
 
 /* ***************************
 Dependencies from treeObj.js:
 
-function Node (val = 0, col = -1, x = -1, y = -1, cvalue = "#000000");		// Node class
+function Node (val = 0, col = 0, x = -1, y = -1, cvalue = "#000000");		// Node class
 
 var tree = {
 	nodes: []	// Stores all nodes in array binary tree form
@@ -49,7 +57,7 @@ var treeProp = {		// properties of tree as drawn in canvas
 
 	red: "rgb(180, 16, 16)",
 	black: "#000000",
-	stroke: "#ffffff",
+	stroke: "rgb(172, 224, 114)",
 
 	font: "28px arial narrow",
 	fColor: "#ffffff"
@@ -59,20 +67,46 @@ function clearCanvas() {
 	c.clearRect(0, 0, dimCanvas.width, dimCanvas.height);
 }
 
-function drawNode (val = 0, x, y, col = 1) {
+function drawNode (val = 0, x, y, col = 0) {
+	if (col === -2 || col === -3) {
+		c.beginPath();
+		c.moveTo(x + treeProp.nodeRadius + 6, y);
+		c.arc(x, y, treeProp.nodeRadius + 6, 0, 2 * Math.PI);
+		c.strokeStyle = (col === -2) ? "#4fbfff" : "#ff0000";
+		c.stroke();
+		c.strokeStyle = treeProp.stroke;
+		c.closePath();
+		return;
+	}
 	c.beginPath();
 	c.moveTo(x + treeProp.nodeRadius, y);
 	c.arc(x, y, treeProp.nodeRadius, 0, 2 * Math.PI);
-	if (col !== 0 && col !== 1)
+	if (col !== 0 && col !== 1 && col !== -1)
 		c.fillStyle = col;
 	else
-		c.fillStyle = (col === 0) ? treeProp.black : treeProp.red;
+		c.fillStyle = (col === 1) ? treeProp.red : treeProp.black;
 	c.fill();
 	// c.strokeStyle = treeProp.stroke;
-	c.stroke();
+	if (col === -1) {
+		c.strokeStyle = treeProp.black;
+		c.stroke();
+		c.closePath();
+
+		c.beginPath();
+		c.moveTo(x + treeProp.nodeRadius + 6, y);
+		c.arc(x, y, treeProp.nodeRadius + 6, 0, 2 * Math.PI);
+		c.lineWidth = 4;
+		c.stroke();
+		c.strokeStyle = treeProp.stroke;
+		c.lineWidth = 2;
+	}
+	else c.stroke();
 	c.closePath();
+
+	c.beginPath();		// For printing node values
 	c.fillStyle = treeProp.fColor;
 	c.fillText(val, x, y);
+	c.closePath();
 }
 
 function drawLine (x1, y1, x2, y2) {
@@ -93,76 +127,29 @@ function drawLine (x1, y1, x2, y2) {
 	c.closePath();
 }
 
-/*	OLD TREE DRAWING FUNCTION
-function drawTree (skipChanges = false) {		// Draws the complete tree on canvas
-	var p = {x: dimCanvas.width / 2, y: treeProp.marginY};
-	var nodeDist;
-
-	clearCanvas();
-
-	var lastNode = 0, cIndex = 0;
-
-	for (var i = 0; i < tree.nodes.length; ++i) {
-		var skipdraw = false;
-		if (skipChanges && changes && changes[cIndex] && i === changes[cIndex].node) {
-			skipdraw = true;
-			++cIndex;
-		}
-		if (tree.nodes[i]) {
-			if (!skipdraw) drawNode(tree.nodes[i].value, p.x, p.y, tree.nodes[i].color);
-			if (i !== 0) {
-				if (i % 2 === 1) drawLine(p.x + nodeDist/2, p.y - treeProp.ySpacing, p.x, p.y);
-				else drawLine(p.x - nodeDist/2, p.y - treeProp.ySpacing, p.x, p.y);
-			}
-		}
-		if (i === lastNode) {
-			lastNode = lastNode*2 + 2;
-			nodeDist = (dimCanvas.width - treeProp.marginX - p.x);
-			p.y += treeProp.ySpacing;
-			p.x = treeProp.marginX + nodeDist/2;
-			continue;
-		}
-		p.x += nodeDist;
-	}
-}
-*/
-
-function drawTree() {
+function drawTree (nodes, deletedLines = true) {
+	if (!nodes) nodes = tree.nodes;
 	clearCanvas();
 
 	var cIndex = 0;
 
-	for (var i = 0; i < tree.nodes.length; ++i) {
-		if (tree.nodes[i]) {
-			drawNode (tree.nodes[i].value, tree.nodes[i].x, tree.nodes[i].y, tree.nodes[i].cvalue);
+	for (var i = 0; i < nodes.length; ++i) {
+		if (nodes[i]) {
+			drawNode (nodes[i].value, nodes[i].x, nodes[i].y, (nodes[i].color !== -1) ? nodes[i].cvalue : -1);
 
-			if (i !== 0)
-				drawLine(tree.nodes[i].x, tree.nodes[i].y, tree.nodes[((i-1)/2)|0].x, tree.nodes[((i-1)/2)|0].y);
+			if (i !== 0 && deletedLines) {
+				if (changes && cIndex < changes.length && i === changes[cIndex].node && changes[cIndex].from && changes[cIndex].from === -2) {
+					++cIndex;
+					continue;
+				}
+				drawLine(nodes[i].x, nodes[i].y, nodes[((i-1)/2)|0].x, nodes[((i-1)/2)|0].y);
+			}
 		}
 	}
 }
 
-function printlog(id, data, init = false) {
-	/**
-	if (init) {
-		document.getElementById("log").style.border = "1px solid #000000";
-		document.getElementById("log").style.fontWeight = "bold";
-		document.getElementById("log").style.fontFamily = "courier new";
-		document.getElementById("log").style.fontSize = "11px";
-		document.getElementById("log").style.maxHeight = "90%";
-		document.getElementById("log").style.overflow = "scroll";
-		document.getElementById("log").style.position = "fixed";
-		document.getElementById("log").style.right = "10px";
-		document.getElementById("log").style.top = "10px";
-		document.getElementById("log").style.whiteSpace = "pre";
-		//document.getElementById("log").style.width = "300px";
-		return;
-	}
-	document.getElementById("log").innerHTML += id + ':\n      <span style="color: #cf3f3f; display: inline-block">' + data + '</span>\n';
-	//*/
-}
-
-function calcChanges() {
+function calcChanges (nodes) {
+	if (!nodes) nodes = tree.nodes;
 	if (changes.length === 0) return false;
 
 	var treeWidth = dimCanvas.width - 2 * treeProp.marginX;
@@ -177,23 +164,33 @@ function calcChanges() {
 				changes[i].x1 = dimCanvas.width / 2;
 				changes[i].y1 = dimCanvas.height + treeProp.nodeRadius + 2;
 			}
-			else {
+			else if (changes[i].from >= 0) {
 				l1 = tree.levelOf(changes[i].from, true) / 2;
 				l2 = l1 - 1;
 				changes[i].x1 = treeProp.marginX + (changes[i].from - l2 + 0.5) * treeWidth / l1;
 				changes[i].y1 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].from);
 			}
+			if (changes[i].from === -2) {
+				l1 = tree.levelOf(changes[i].node, true) / 2;
+				l2 = l1 - 1;
+				changes[i].x1 = treeProp.marginX + (changes[i].node - l2 + 0.5) * treeWidth / l1;
+				changes[i].y1 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].node);
 
-			l1 = tree.levelOf(changes[i].node, true) / 2;
-			l2 = l1 - 1;
-			changes[i].x2 = treeProp.marginX + (changes[i].node - l2 + 0.5) * treeWidth / l1;
-			changes[i].y2 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].node);
+				changes[i].x2 = changes[i].x1;
+				changes[i].y2 = dimCanvas.height + treeProp.nodeRadius + 2;
+			}
+			else {
+				l1 = tree.levelOf(changes[i].node, true) / 2;
+				l2 = l1 - 1;
+				changes[i].x2 = treeProp.marginX + (changes[i].node - l2 + 0.5) * treeWidth / l1;
+				changes[i].y2 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].node);
+			}
 
-			if (tree.nodes[changes[i].node] === null) continue;
+			if (nodes[changes[i].node] === null) continue;
 
-			tree.nodes[changes[i].node].x = changes[i].x1;
-			tree.nodes[changes[i].node].y = changes[i].y1;
-			tree.nodes[changes[i].node].cvalue = (tree.nodes[changes[i].node].color === 0) ? treeProp.black : treeProp.red;
+			nodes[changes[i].node].x = changes[i].x1;
+			nodes[changes[i].node].y = changes[i].y1;
+			nodes[changes[i].node].cvalue = (nodes[changes[i].node].color !== -1) ? (nodes[changes[i].node].color === 0) ? treeProp.black : treeProp.red : -1;
 		}
 	}
 	else if (changes[0].color !== undefined) {
@@ -203,21 +200,43 @@ function calcChanges() {
 			changes[i].x = treeProp.marginX + (changes[i].node - l2 + 0.5) * treeWidth / l1;
 			changes[i].y = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[i].node);
 
-			if (tree.nodes[changes[i].node] === null) continue;
+			if (nodes[changes[i].node] === null) continue;
 
-			tree.nodes[changes[i].node].x = changes[i].x;
-			tree.nodes[changes[i].node].y = changes[i].y;
-			tree.nodes[changes[i].node].cvalue = (tree.nodes[changes[i].node].color === 0) ? treeProp.red : treeProp.black;		// the colors are toggled here as we need them to transition from one to the other
+			nodes[changes[i].node].x = changes[i].x;
+			nodes[changes[i].node].y = changes[i].y;
+			nodes[changes[i].node].cvalue = (nodes[changes[i].node].color === 0) ? treeProp.red : treeProp.black;		// the colors are toggled here as we need them to transition from one to the other
 		}
+	}
+	else if (changes[0].srchfrom !== undefined) {
+		l1 = tree.levelOf(changes[0].srchfrom, true) / 2;
+		l2 = l1 - 1;
+		changes[0].x1 = treeProp.marginX + (changes[0].srchfrom - l2 + 0.5) * treeWidth / l1;
+		changes[0].y1 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[0].srchfrom);
+
+		l1 = tree.levelOf(changes[0].node, true) / 2;
+		l2 = l1 - 1;
+		changes[0].x2 = treeProp.marginX + (changes[0].node - l2 + 0.5) * treeWidth / l1;
+		changes[0].y2 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[0].node);
+	}
+	else if (changes[0].nextfrom !== undefined) {
+		l1 = tree.levelOf(changes[0].nextfrom, true) / 2;
+		l2 = l1 - 1;
+		changes[0].x1 = treeProp.marginX + (changes[0].nextfrom - l2 + 0.5) * treeWidth / l1;
+		changes[0].y1 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[0].nextfrom);
+
+		l1 = tree.levelOf(changes[0].node, true) / 2;
+		l2 = l1 - 1;
+		changes[0].x2 = treeProp.marginX + (changes[0].node - l2 + 0.5) * treeWidth / l1;
+		changes[0].y2 = treeProp.marginY + treeProp.ySpacing * tree.levelOf(changes[0].node);
 	}
 }
 
-function animChange(args = {delay: 10, delete: false, lagFrames: 0}) {
-	if (args.delay === undefined) args.delay = 10;
+function animChange(args = {}) {
+	if (args.delay === undefined) args.delay = 12;
 	if (args.delete === undefined) args.delete = false;
-	if (args.lagFrames === undefined) args.lagFrames = 0;
+	if (args.lagFrames === undefined) args.lagFrames = 20;
+	if (args.nodes === undefined) args.nodes = tree.nodes;
 
-	console.log(args);
 	if (animInterval) {
 		return;
 	}
@@ -227,18 +246,19 @@ function animChange(args = {delay: 10, delete: false, lagFrames: 0}) {
 	}
 	if (chGenerator) {
 		var nextVal = chGenerator.next();
-		if (!nextVal.value) {
+		if (nextVal.done) {
 			chGenerator = null;
 			return;
 		}
+		else while (nextVal.value[0] === undefined) nextVal = chGenerator.next();
 		changes = nextVal.value;
-		console.log('changes:', changes);
 	}
+	console.log('changes:', changes);
 
 	var len = changes.length;
 	var k = 0;
 
-	calcChanges();
+	calcChanges(args.nodes);
 
 	if (changes[0].from !== undefined) {
 		animInterval = setInterval( function() {
@@ -246,22 +266,22 @@ function animChange(args = {delay: 10, delete: false, lagFrames: 0}) {
 			else {
 				for (var i = 0; i < len; ++i) {
 					var ci = changes[i];
-					if (tree.nodes[ci.node] === null) continue;
+					if (args.nodes[ci.node] === null) continue;
 
-					tree.nodes[ci.node].x = ci.x1 + (ci.x2 - ci.x1) * progress[k];
-					tree.nodes[ci.node].y = ci.y1 + (ci.y2 - ci.y1) * progress[k];
+					args.nodes[ci.node].x = ci.x1 + (ci.x2 - ci.x1) * progress[k];
+					args.nodes[ci.node].y = ci.y1 + (ci.y2 - ci.y1) * progress[k];
 					// drawNode(v, x, y, col);
 				}
 				++k;
 			}
 
-			drawTree();
+			drawTree(args.nodes);
 
 			if (k >= progress.length) {
 				clearInterval(animInterval);
 				if (args.delete) changes = [];
 				animInterval = null;
-				if (chGenerator) animChange({delay: args.delay, delete: args.delete, lagFrames: 20});
+				if (chGenerator) animChange({delay: args.delay, delete: args.delete, lagFrames: 15});
 				else return;
 			}
 		}, args.delay);
@@ -271,7 +291,7 @@ function animChange(args = {delay: 10, delete: false, lagFrames: 0}) {
 			if (args.lagFrames > 0) --args.lagFrames;
 			else {
 				for (var i = 0; i < len; ++i) {
-					if (tree.nodes[changes[i].node] === null) continue;
+					if (args.nodes[changes[i].node] === null) continue;
 
 					var r, g, b;
 					if (changes[i].color === 0) {
@@ -284,19 +304,59 @@ function animChange(args = {delay: 10, delete: false, lagFrames: 0}) {
 						g = (treeProp.g0 + (treeProp.g1 - treeProp.g0) * progress[k]);
 						b = (treeProp.b0 + (treeProp.b1 - treeProp.b0) * progress[k]);
 					}
-					tree.nodes[changes[i].node].cvalue = 'rgb(' + r + ',' + g + ',' + b + ')';
+					args.nodes[changes[i].node].cvalue = 'rgb(' + r + ',' + g + ',' + b + ')';
 					// drawNode(v, x, y, col);
 				}
 				++k;
 			}
 
-			drawTree();
+			drawTree(args.nodes);
 
 			if (k >= progress.length) {
 				clearInterval(animInterval);
 				if (args.delete) changes = [];
 				animInterval = null;
-				if (chGenerator) animChange({delay: args.delay, delete: args.delete, lagFrames: 20});
+				if (chGenerator) animChange({delay: args.delay, delete: args.delete, lagFrames: 15});
+				else return;
+			}
+		}, args.delay);
+	}
+	else if (changes[0].srchfrom !== undefined) {
+		animInterval = setInterval( function() {
+			drawTree(args.nodes);
+
+			if (args.lagFrames > 0) --args.lagFrames;
+			else {
+				var ci = changes[0];
+				drawNode(null, ci.x1 + (ci.x2 - ci.x1) * progress[k], ci.y1 + (ci.y2 - ci.y1) * progress[k], -2);
+				++k;
+			}
+
+			if (k >= progress.length) {
+				clearInterval(animInterval);
+				if (args.delete) changes = [];
+				animInterval = null;
+				if (chGenerator) animChange({delay: args.delay, delete: args.delete, lagFrames: 15});
+				else return;
+			}
+		}, args.delay);
+	}
+	else if (changes[0].nextfrom !== undefined) {
+		animInterval = setInterval( function() {
+			drawTree(args.nodes);
+
+			if (args.lagFrames > 0) --args.lagFrames;
+			else {
+				var ci = changes[0];
+				drawNode(null, ci.x1 + (ci.x2 - ci.x1) * progress[k], ci.y1 + (ci.y2 - ci.y1) * progress[k], -3);
+				++k;
+			}
+
+			if (k >= progress.length) {
+				clearInterval(animInterval);
+				if (args.delete) changes = [];
+				animInterval = null;
+				if (chGenerator) animChange({delay: args.delay, delete: args.delete, lagFrames: 15});
 				else return;
 			}
 		}, args.delay);
@@ -306,7 +366,7 @@ function animChange(args = {delay: 10, delete: false, lagFrames: 0}) {
 function nodeCpy (src) {
 	var dest = [];
 	for (var i = 0; i < src.length; ++i) {
-		if (src[i] === null) dest[i] = null;
+		if (src[i] === null || src[i] === undefined) dest[i] = null;
 		else dest[i] = new Node(src[i].value, src[i].color, src[i].x, src[i].y, src[i].cvalue);
 	}
 	return dest;
@@ -315,47 +375,42 @@ function nodeCpy (src) {
 function reDraw (val, operation) {
 	if (animInterval) return;
 	if (operation % 100 === 1) {			// Insert Operation
-		if (operation < 100) {
-			chGenerator = tree.insertNode(val);
-			animChange();
-		}
-		else {
+		if (operation > 100) {
 			tree.nodes = nodeCpy(clipboard.nodes);
 			tree.height = clipboard.height;
-			chGenerator = tree.insertNode(val);
-			animChange({lagFrames: 100});
 		}
+		chGenerator = tree.insertNode(val);
+		animChange();
+	}
+	else if (operation % 100 === 2) {			// Delete Operation
+		chGenerator = tree.deleteNode(val);
+		animChange();
+	}
+	else if (operation % 100 === 3) {			// Search Operation
+		chGenerator = tree.searchNode(val);
+		animChange();
 	}
 	else if (operation % 100 === 4) {		// Randomize
-		if (operation < 100) {
-			changes = tree.randomize(20);
-			animChange();
-		}
-		else animChange({lagFrames: 100});
+		if (operation < 100) changes = tree.randomize(20);
+		animChange();
 	}
 	else if (operation % 100 === 5) {		// erase the tree
-		tree.erase();
-		drawTree();
+		if (operation < 100) changes = tree.erase();
+		var tempNodes = nodeCpy(clipboard.nodes);
+		animChange({nodes: tempNodes});
 	}
 	else if (operation % 100 === 6) {		// left rotate at value given in input box
-		if (operation < 100) {
-			changes = tree.rotate(val, 0);
-			animChange();
-		}
-		else animChange({lagFrames: 100});
+		if (operation < 100) changes = tree.rotate(val, 0);
+		animChange();
 	}
 	else if (operation % 100 === 7) {		// right rotate at value given in input box
-		if (operation < 100) {
-			changes = tree.rotate(val, 1)
-			animChange();
-		}
-		else animChange({lagFrames: 100});
+		if (operation < 100) changes = tree.rotate(val, 1);
+		animChange();
 	}
 	else if (operation % 100 === 8) {		// re-do last operation
-		reDraw(clipboard.value, clipboard.operation + 100);
+		drawTree(clipboard.nodes, false);
+		setTimeout(function() {reDraw(clipboard.value, clipboard.operation + 100);}, 1000);
 	}
-
-	// printlog('Routine Log', tree.getNodes());
 }
 
 function updateTree (operation) {
@@ -434,5 +489,4 @@ window.onload = function initCanvas() {
 	}
 
 	parseColors();
-	// printlog(0, 0, true);
 }
