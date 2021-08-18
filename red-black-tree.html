@@ -6,41 +6,90 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 		<style type="text/css">
-			body, button {
-				background: rgb(44, 70, 15);
+			html, body {
+				height: 100%;
+				margin: 0;
+				padding: 0;
+				line-height: 2em;
+			}
+			body, button, input{
+				background: rgb(27, 46, 12);
 				color: rgb(172, 224, 114);
 				font-family: segoe ui light, sans-serif;
 			}
+			main {
+				display: flex;
+				flex-direction: column;
+				height: 100%;
+				width: 100%;
+			}
+			.darkstrip {
+				background: rgb(28, 28, 28);
+			}
 			h1 {
+				font-variant: small-caps;
+				margin: 0;
+				padding: 20px;
 				text-align: center;
 			}
+			.marginContent {
+				max-width: 1200px;
+				margin: auto;
+				padding: 5px 20px;
+			}
 			#canvasArea {
-				border: 1px solid #000000;
+				border: 1px solid rgb(172, 224, 114);
 				max-width: 800px;
+				outline: 10px solid rgb(28, 28, 28);
 				width: 99%;
+			}
+			#controls {
+				margin: 5px 0 0;
+				padding: 10px 0;
+				flex-grow: 1;
+			}
+			input {
+				background: rgb(44, 72, 19);
+				border: 1px solid rgb(172, 224, 114);
+				padding: 2px 5px;
+			}
+			button {
+				border: 1px solid rgb(172, 224, 114);
+				border-radius: 100px;
+				padding: 12px 20px;
+			}
+			button:hover {
+				background: rgb(44, 72, 19);
+			}
+			button:active {
+				background: rgb(143, 214, 67);
+				color: #000000;
 			}
 		</style>
 	</head>
 	<body>
 		<main>
-			<h1> Red Black Trees</h1>
-			<p> Visual Demonstration of basic operations on Red-Black Trees </p>
-			<canvas id="canvasArea" width=1600 height=800> Canvas is not supported on your browser </canvas> <br><br>
-			
-			<input type="number" value="20" id="nodeValue"> &nbsp;
-
-			<button onclick="updateTree(1)">Insert</button>
-			<button onclick="updateTree(2)">Delete</button>
-			<button onclick="updateTree(3)">Search</button>
-			<button onclick="updateTree(4)">Randomize</button>
-			<button onclick="updateTree(5)">Erase tree</button>
-			<button onclick="updateTree(6)">Rotate left</button>
-			<button onclick="updateTree(7)">Rotate right</button>
-			<button onclick="reDraw(null, 8)">Re-do last</button><br>
-
-			Animation Speed (steps per minute): <input type="number" value="90" id="speed"> &nbsp;
-
-			<div id="log"></div>
+			<h1 class="darkstrip"> Red Black Tree</h1>
+			<div id="canvasRow">
+				<div class="marginContent">
+					<p> Visual Demonstration of basic operations on Red-Black Trees </p>
+					<canvas id="canvasArea" width=1600 height=800> Canvas is not supported on your browser </canvas> <br>
+				</div>
+			</div>
+			<div class="darkstrip" id="controls">
+				<div class="marginContent">
+					<div>Value: <input type="number" value="20" id="nodeValue"></div>
+					<div>
+						<button onclick="updateTree(1)">Insert</button>
+						<button onclick="updateTree(2)">Delete</button>
+						<button onclick="updateTree(3)">Search</button>
+						<button onclick="updateTree(4)">Randomize</button>
+						<button onclick="updateTree(5)">Erase tree</button>
+						<button onclick="reDraw(null, 8)">Re-do last</button>
+					</div>
+					<div>Animation Speed (steps per minute): <input type="number" value="70" id="speed"></div>
+				</div>
+			</div>
 		</main>
 		
 		<script type="text/javascript" src="treeObj.js"></script>
