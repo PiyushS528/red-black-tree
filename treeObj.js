@@ -10,6 +10,12 @@ function Node (val, col, x, y, cvalue) {		// Node class
 var tree = {
 	nodes: [],	// Stores all nodes in array binary tree form
 	height: 0,	// Stores height of tree
+	record: function (){},
+
+	setRecorder: function setRecorder (rec) {
+		if (rec) this.record = function (a, b, c) {rec.call(window, a, b, c);}
+		else this.record = function (){};
+	},
 
 	at: function at (strPos, initIndex) {		// takes a string of 'l's and 'r's or 'p's for successive left or right child or parent elements respectively and returns its index number in nodes (tree) array.
 		var index = initIndex || 0;
@@ -210,42 +216,218 @@ tree.deleteNode = function deleteNode (record, val) {
 	nextn = this.getSuccessor(record, index);
 	record (this.nodes, 7, [{node: nextn}]);
 
-	if (this.nodeExists(index)) {
-		this.nodes[index] = null;
-		record (this.nodes, 2, [{node: index}]);
-	}
+	var newColor = null, oldColor = this.nodes[nextn].color;
+
+	if (oldColor !== this.nodes[index].color) newColor = this.nodes[index].color;
+
+	this.nodes[index] = null;
+	record (this.nodes, 2, [{node: index}]);
+
 	this.copyNode(nextn, index);
 	this.eraseNode(nextn);
-	record(this.nodes, 0, [{from: nextn, node: index}]);
+	if (newColor !== null) {
+		this.nodes[index].color = newColor;
+		record(this.nodes, 8, [{node: index, from: nextn, color: newColor}]);
+	}
+	else if (nextn !== index) record(this.nodes, 0, [{from: nextn, node: index}]);
 
-	function moveSuccessor(from, to) {
-		var totalnodes = 1, levelIsEmpty = false;
-
-		while (!levelIsEmpty) {
-			levelIsEmpty = true;
-			for (var i = 0; i < totalnodes; ++i) {
-				if (this.nodeExists(from + i)) {
-					levelIsEmpty = false;
-					this.copyNode(from + i, to + i);
-					this.eraseNode(from + i, false);
-					changes.push({from: from + i, node: to + i});
-				}
-			}
-			if (levelIsEmpty) {
-				this.eraseNode(to);
-				break;
-			}
-			totalnodes *= 2;
-			from = from * 2 + 1;
-			to = to * 2 + 1;
-		}
+	if (this.nodeExists(nextn * 2 + 1)) {
+		this.copyNode (nextn * 2 + 1, nextn);
+		this.eraseNode (nextn * 2 + 1);
+		record(this.nodes, 0, [{from: nextn * 2 + 1, node: nextn}]);
+	}
+	else if (this.nodeExists(nextn * 2 + 2)) {
+		this.copyNode (nextn * 2 + 2, nextn);
+		this.eraseNode (nextn * 2 + 2);
+		record(this.nodes, 0, [{from: nextn * 2 + 2, node: nextn}]);
 	}
 
-	if (this.nodeExists(nextn * 2 + 1))
-		moveSuccessor.call(this, nextn * 2 + 1, nextn);
-	else if (this.nodeExists(nextn * 2 + 2))
-		moveSuccessor.call(this, nextn * 2 + 2, nextn);
-	record (this.nodes, 0, changes);
+	if (oldColor === 1) return;
+
+	if (this.nodeExists(nextn)) {
+		if (this.nodes[nextn].color === 1) {
+			this.nodes[nextn].color = 0;
+			record (this.nodes, 3, [{node: nextn, color: 0}]);
+			return;
+		}
+	}
+	else this.nodes[nextn] = new Node(null, -1);	// Double black null node
+	record(this.nodes, 9, [{node: nextn}]);
+
+	var sibling = nextn + ((nextn % 2 === 1) ? +1 : -1);
+	var parent = ((nextn - 1) / 2) | 0;
+	var lnephew = sibling * 2 + 1;
+	var rnephew = lnephew + 1;
+
+	while (true) {
+		if (this.nodes[sibling].color === 0) {
+			if (sibling > nextn) {
+				if (this.nodeExists(rnephew) && this.nodes[rnephew].color === 1) {
+					this.rotate(record, parent, 0);
+
+					this.nodes[sibling].color = 0;
+					changes.push ({node: sibling, color: 0});
+
+					if (this.nodes[nextn].color === 1) {		// In case parent was red, the new parent (after rotation) should be recolored to red, and nextn to black
+						this.nodes[nextn].color = 0;
+						this.nodes[parent].color = 1;
+						changes.push ({node: nextn, color: 0});
+						changes.push ({node: parent, color: 1});
+					}
+					record(this.nodes, 3, changes);
+					changes = [];
+
+					if (this.nodes[nextn * 2 + 1].value === null) {
+						this.eraseNode (nextn * 2 + 1);
+						record(this.nodes, 2, [{node: nextn * 2 + 1}]);
+					}
+					else {
+						this.nodes[nextn * 2 + 1].color = 0;
+						record(this.nodes, 9, [{node: nextn * 2 + 1}]);
+					}
+
+					return;
+				}
+				else if (this.nodeExists(lnephew) && this.nodes[lnephew].color === 1) {
+					this.rotate(record, sibling, 1);
+					this.rotate(record, parent, 0);
+
+					if (this.nodes[nextn].color === 1) {		// If parent was red, it is now replaced by the old red nephew (no change of color), but the new nextn position should be recolored to black
+						this.nodes[nextn].color = 0;
+						record (this.nodes, 3, [{node: nextn, color: 0}]);
+					}
+					else {		// Otherwise, parent was black, so recolor it to black		
+						this.nodes[parent].color = 0;
+						record (this.nodes, 3, [{node: parent, color: 0}]);
+					}
+
+					if (this.nodes[nextn * 2 + 1].value === null) {
+						this.eraseNode (nextn * 2 + 1);
+						record(this.nodes, 2, [{node: nextn * 2 + 1}]);
+					}
+					else {
+						this.nodes[nextn * 2 + 1].color = 0;
+						record(this.nodes, 9, [{node: nextn * 2 + 1}]);
+					}
+
+					return;
+				}
+			}
+			else {
+				if (this.nodeExists(lnephew) && this.nodes[lnephew].color === 1) {
+					this.rotate(record, parent, 1);
+
+					this.nodes[sibling].color = 0;
+					changes.push ({node: sibling, color: 0});
+
+					if (this.nodes[nextn].color === 1) {		// In case parent was red, the new parent (after rotation) should be recolored to red, and nextn to black
+						this.nodes[nextn].color = 0;
+						this.nodes[parent].color = 1;
+						changes.push ({node: nextn, color: 0});
+						changes.push ({node: parent, color: 1});
+					}
+					record(this.nodes, 3, changes);
+					changes = [];
+
+					if (this.nodes[nextn * 2 + 2].value === null) {
+						this.eraseNode (nextn * 2 + 2);
+						record(this.nodes, 2, [{node: nextn * 2 + 2}]);
+					}
+					else {
+						this.nodes[nextn * 2 + 2].color = 0;
+						record(this.nodes, 9, [{node: nextn * 2 + 2}]);
+					}
+
+					return;
+				}
+				else if (this.nodeExists(rnephew) && this.nodes[rnephew].color === 1) {
+					this.rotate(record, sibling, 0);
+					this.rotate(record, parent, 1);
+
+					if (this.nodes[nextn].color === 1) {		// If parent was red, it is now replaced by the old red nephew (no change of color), but the new nextn position should be recolored to black
+						this.nodes[nextn].color = 0;
+						record (this.nodes, 3, [{node: nextn, color: 0}]);
+					}
+					else {		// Otherwise, parent was black, so recolor it to black		
+						this.nodes[parent].color = 0;
+						record (this.nodes, 3, [{node: parent, color: 0}]);
+					}
+
+
+					if (this.nodes[nextn * 2 + 2].value === null) {
+						this.eraseNode (nextn * 2 + 2);
+						record(this.nodes, 2, [{node: nextn * 2 + 1}]);
+					}
+					else {
+						this.nodes[nextn * 2 + 2].color = 0;
+						record(this.nodes, 9, [{node: nextn * 2 + 2}]);
+					}
+
+					return;
+				}
+			}
+			this.nodes[sibling].color = 1;		// At this point none of the above conditions are true, which means both the sibling and its children are black
+			record(this.nodes, 3, [{node: sibling, color: 1}]);
+
+			if (this.nodes[nextn].value === null) {
+				this.eraseNode (nextn);
+				record(this.nodes, 2, [{node: nextn}]);
+			}
+			else {
+				this.nodes[nextn].color = 0;
+				record(this.nodes, 9, [{node: nextn}]);
+			}
+
+			if (this.nodes[parent].color === 1) {
+				this.nodes[parent].color = 0;
+				record(this.nodes, 3, [{node: parent, color: 0}]);
+				return;
+			}
+			this.nodes[parent].color = -1;
+			record(this.nodes, 9, [{node: parent}]);
+
+			nextn = parent;		// recur
+			if (nextn === 0) {		// if the new parent (which is now double black) is root node, recolor it to black
+				this.nodes[nextn].color = 0;
+				record(this.nodes, 9, [{node: nextn}]);
+				return;
+			}
+			sibling = nextn + ((nextn % 2 === 1) ? +1 : -1);
+			parent = ((nextn - 1) / 2) | 0;
+			lnephew = sibling * 2 + 1;
+			rnephew = lnephew + 1;
+
+			continue;
+		}
+		else {		// sibling is red
+			if (sibling > nextn) {
+				tree.rotate(record, parent, 0);
+
+				this.nodes[parent].color = 0;
+				this.nodes[nextn].color = 1;
+				record(this.nodes, 3, [{node: parent, color: 0}, {node: nextn, color: 1}]);
+
+				parent = nextn;
+				nextn = nextn * 2 + 1;
+				sibling = nextn + 1;
+				lnephew = sibling * 2 + 1;
+				rnephew = lnephew + 1;
+			}
+			else {
+				tree.rotate(record, parent, 1);
+
+				this.nodes[parent].color = 0;
+				this.nodes[nextn].color = 1;
+				record(this.nodes, 3, [{node: parent, color: 0}, {node: nextn, color: 1}]);
+
+				parent = nextn;
+				nextn = nextn * 2 + 2;
+				sibling = nextn - 1;
+				lnephew = sibling * 2 + 1;
+				rnephew = lnephew + 1;
+			}
+		}
+	}
 }
 
 tree.insertNode = function insertNode (record, val, col) {
@@ -256,8 +438,7 @@ tree.insertNode = function insertNode (record, val, col) {
 	var changes = [];
 
 	if (!this.nodeExists(0)) {
-		col = 0
-		this.setNode(0, new Node(val, col));
+		col = 0;
 	}
 	else {
 		var prev = -1;
@@ -270,9 +451,9 @@ tree.insertNode = function insertNode (record, val, col) {
 				currNode = currNode * 2 + 2;
 			changes.push ({from: prev, node: currNode});
 		}
+		var i = -1;
+		while (changes[++i]) record(this.nodes, 4, [changes[i]]);
 	}
-	var i = -1;
-	while (changes[++i]) record(this.nodes, 4, [changes[i]]);
 	record(this.nodes, 6, [{node: currNode}]);
 	changes = [];
 
