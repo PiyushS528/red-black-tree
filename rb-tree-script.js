@@ -32,7 +32,8 @@ var cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimat
 
 var clipboard = {
 	operation: 0,
-	value: 0
+	value: 0,
+	newHeight: -1
 }
 var canvasProp = {	// Dimensions of canvas
 	width: 0,
@@ -60,6 +61,7 @@ var transition = {
 	steps: [], 		//[[{node: 10, from: 21}, {..., ...}], [{...}, {...}, ...]],
 	other: [],
 	tempState: [],
+	oldHeight: 0,
 
 	reset: function reset() {
 		this.animtype = [];
@@ -67,6 +69,7 @@ var transition = {
 		this.steps = [];
 		this.other = [];
 		this.tempState = [];
+		this.oldHeight = 0;
 	}
 };
 
@@ -218,6 +221,15 @@ function calcNodePositions (nodes) {
 	return treeProp.xSpacing * newOffsetx;
 }
 
+function nodeCpy (src) {
+	var dest = [];
+	for (var i = 0; i < src.length; ++i) {
+		if (src[i] === null || src[i] === undefined) dest[i] = null;
+		else dest[i] = new Node(src[i].value, src[i].color, src[i].x, src[i].y, src[i].cvalue);
+	}
+	return dest;
+}
+
 function recordChanges (nodes, animtype, changes, init) {
 	/* animtypes:
 		0 - move
@@ -237,6 +249,7 @@ function recordChanges (nodes, animtype, changes, init) {
 		transition.reset();
 		calcNodePositions (tree.nodes);
 		transition.state[0] = nodeCpy(tree.nodes);
+		transition.oldHeight = tree.height;
 		return;
 	}
 
@@ -529,17 +542,11 @@ function animate (args) {
 	animFrame = requestAnimationFrame(mainAnimation);
 }
 
-function nodeCpy (src) {
-	var dest = [];
-	for (var i = 0; i < src.length; ++i) {
-		if (src[i] === null || src[i] === undefined) dest[i] = null;
-		else dest[i] = new Node(src[i].value, src[i].color, src[i].x, src[i].y, src[i].cvalue);
-	}
-	return dest;
-}
-
 function reDraw (val, operation) {
 	if (animFrame) return;
+
+	document.getElementById("undoButton").removeAttribute("disabled");
+
 	if (operation % 100 === 1) {			// Insert Operation
 		if (operation < 100) tree.insertNode(recordChanges, val);
 		animate();
@@ -568,7 +575,21 @@ function reDraw (val, operation) {
 		if (operation < 100) tree.rotate(recordChanges, val, 1);
 		animate();
 	}
-	else if (operation % 100 === 8) {		// re-do last operation
+	else if (operation % 100 === 8) {		// Undo last
+		if (transition.state.length === 0) return;
+		clipboard.newHeight = tree.height;
+		tree.nodes = nodeCpy(transition.state[0]);
+		tree.height = transition.oldHeight;
+		drawTree(tree.nodes);
+
+		document.getElementById("undoButton").setAttribute("disabled", "disabled");
+	}
+	else if (operation % 100 === 9) {		// re-do last operation
+		if (clipboard.newHeight !== -1) {
+			tree.nodes = nodeCpy(transition.state[transition.state.length - 1]);
+			tree.height = clipboard.newHeight;
+			clipboard.newHeight = -1;
+		}
 		drawTree(transition.state[0]);
 
 		canvasProp.stepDuration = 60000 / (parseInt(document.getElementById("speed").value) * (1 + canvasProp.stepDelay));
@@ -654,6 +675,4 @@ window.onload = function initCanvas() {
 	}
 
 	parseColors();
-
-	tree.setRecorder (recordChanges);
 }
