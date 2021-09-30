@@ -12,10 +12,12 @@ var tree = {
 	height: 0,	// Stores height of tree
 	record: function (){},
 
+	/*
 	setRecorder: function setRecorder (rec) {
 		if (rec) this.record = function (a, b, c) {rec.call(window, a, b, c);}
 		else this.record = function (){};
 	},
+	*/
 
 	at: function at (strPos, initIndex) {		// takes a string of 'l's and 'r's or 'p's for successive left or right child or parent elements respectively and returns its index number in nodes (tree) array.
 		var index = initIndex || 0;
@@ -46,6 +48,14 @@ var tree = {
 		}
 		else return true;
 	},
+	/*
+	calcHeight: function calcHeight() {
+		var ind = 0, ht = 0, stack = [];
+		while (stack.length > 0 || ind === 0) {
+			if (nodeExists)
+		}
+	},
+	*/
 	setNode: function setNode (pos, node, checkParent) {
 		if (checkParent === undefined) checkParent = true;
 
@@ -207,13 +217,12 @@ tree.deleteNode = function deleteNode (record, val) {
 
 	var index = this.searchNode(record, val), changes = [];
 
-	if (index === -1) {
-		return -1;
-	}
+	if (index === -1) return -1;
 
 	var nextn;
 
 	nextn = this.getSuccessor(record, index);
+
 	record (this.nodes, 7, [{node: nextn}]);
 
 	var newColor = null, oldColor = this.nodes[nextn].color;
@@ -222,9 +231,14 @@ tree.deleteNode = function deleteNode (record, val) {
 
 	this.nodes[index] = null;
 	record (this.nodes, 2, [{node: index}]);
+	if (index === 0 && nextn === index) {
+		this.eraseNode(index);
+		return;
+	}
 
 	this.copyNode(nextn, index);
 	this.eraseNode(nextn);
+
 	if (newColor !== null) {
 		this.nodes[index].color = newColor;
 		record(this.nodes, 8, [{node: index, from: nextn, color: newColor}]);
