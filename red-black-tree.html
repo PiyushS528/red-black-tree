@@ -49,7 +49,7 @@
 				flex-grow: 1;
 			}
 			input {
-				background: rgb(44, 72, 19);
+				background: rgb(16, 26, 6);
 				border: 1px solid rgb(172, 224, 114);
 				padding: 2px 5px;
 			}
@@ -64,6 +64,11 @@
 			button:active {
 				background: rgb(143, 214, 67);
 				color: #000000;
+			}
+			button[disabled], button[disabled]:hover {
+				background: rgb(28, 28, 28);
+				color: rgb(168, 168, 168);
+				border-color: rgb(168, 168, 168);
 			}
 		</style>
 	</head>
@@ -85,9 +90,10 @@
 						<button onclick="updateTree(3)">Search</button>
 						<button onclick="updateTree(4)">Randomize</button>
 						<button onclick="updateTree(5)">Erase tree</button>
-						<button onclick="reDraw(null, 8)">Re-do last</button>
+						<button onclick="reDraw(null, 8)" id="undoButton">Undo last</button>
+						<button onclick="reDraw(null, 9)">Redo last</button>
 					</div>
-					<div>Animation Speed (steps per minute): <input type="number" value="70" id="speed"></div>
+					<div>Animation Speed (steps per minute): <input type="number" value="90" id="speed"></div>
 				</div>
 			</div>
 		</main>
