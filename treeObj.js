@@ -10,9 +10,9 @@ function Node (val, col, x, y, cvalue) {		// Node class
 var tree = {
 	nodes: [],	// Stores all nodes in array binary tree form
 	height: 0,	// Stores height of tree
-	record: function (){},
 
 	/*
+	record: function (){},
 	setRecorder: function setRecorder (rec) {
 		if (rec) this.record = function (a, b, c) {rec.call(window, a, b, c);}
 		else this.record = function (){};
@@ -370,7 +370,7 @@ tree.deleteNode = function deleteNode (record, val) {
 
 					if (this.nodes[nextn * 2 + 2].value === null) {
 						this.eraseNode (nextn * 2 + 2);
-						record(this.nodes, 2, [{node: nextn * 2 + 1}]);
+						record(this.nodes, 2, [{node: nextn * 2 + 2}]);
 					}
 					else {
 						this.nodes[nextn * 2 + 2].color = 0;
