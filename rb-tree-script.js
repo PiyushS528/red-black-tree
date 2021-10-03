@@ -1,4 +1,8 @@
 
+/*
+	- arrows added
+*/
+
 /* ***************************
 Dependencies from treeObj.js:
 
@@ -140,6 +144,21 @@ function drawLine (x1, y1, x2, y2) {
 	c.lineTo(x2, y2);
 	// c.strokeStyle = treeProp.stroke;
 	c.stroke();
+	c.closePath();
+
+	var theta = Math.atan2(-dy, -dx);
+	var arrow_p1x = x1 - 20 * Math.cos (theta + 20 * Math.PI / 180);
+	var arrow_p1y = y1 - 20 * Math.sin (theta + 20 * Math.PI / 180);
+	var arrow_p2x = x1 - 20 * Math.cos (theta - 20 * Math.PI / 180);
+	var arrow_p2y = y1 - 20 * Math.sin (theta - 20 * Math.PI / 180);
+
+	c.beginPath();
+	c.moveTo(x1, y1);
+	c.lineTo(arrow_p1x, arrow_p1y);
+	c.lineTo(arrow_p2x, arrow_p2y);
+	c.moveTo(x1, y1);
+	c.fillStyle = treeProp.stroke;
+	c.fill();
 	c.closePath();
 }
 
