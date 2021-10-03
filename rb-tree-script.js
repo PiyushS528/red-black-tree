@@ -392,6 +392,7 @@ function animate (args) {
 		nodes = nodeCpy(transition.state[args.stepNumber + 1]);
 		updatenodes = function updatenodes(p) {
 			for (var i = 0; i < transition.steps[args.stepNumber].length; ++i) {
+				/*
 				var r, g, b;
 				if (transition.steps[args.stepNumber][i].color === 0) {
 					r = (treeProp.r1 + (treeProp.r0 - treeProp.r1) * p);
@@ -403,7 +404,23 @@ function animate (args) {
 					g = (treeProp.g0 + (treeProp.g1 - treeProp.g0) * p);
 					b = (treeProp.b0 + (treeProp.b1 - treeProp.b0) * p);
 				}
-				nodes[transition.steps[args.stepNumber][i].node].cvalue = 'rgb(' + (r|0) + ',' + (g|0) + ',' + (b|0) + ')';
+				*/
+				if (transition.steps[args.stepNumber][i].color === 0) {
+					if ((p * 8) % 2 < 1) {
+						nodes[transition.steps[args.stepNumber][i].node].cvalue = treeProp.red;
+					}
+					else {
+						nodes[transition.steps[args.stepNumber][i].node].cvalue = treeProp.black;
+					}
+				}
+				else {
+					if ((p * 8) % 2 < 1) {
+						nodes[transition.steps[args.stepNumber][i].node].cvalue = treeProp.black;
+					}
+					else {
+						nodes[transition.steps[args.stepNumber][i].node].cvalue = treeProp.red;
+					}
+				}
 			}
 		}
 	}
@@ -465,16 +482,21 @@ function animate (args) {
 
 					var r, g, b;
 					if (ci.color === 0) {
-						r = (treeProp.r1 + (treeProp.r0 - treeProp.r1) * p);
-						g = (treeProp.g1 + (treeProp.g0 - treeProp.g1) * p);
-						b = (treeProp.b1 + (treeProp.b0 - treeProp.b1) * p);
+						if ((p * 8) % 2 < 1) {
+							nodes[ci.node].cvalue = treeProp.red;
+						}
+						else {
+							nodes[ci.node].cvalue = treeProp.black;
+						}
 					}
 					else {
-						r = (treeProp.r0 + (treeProp.r1 - treeProp.r0) * p);
-						g = (treeProp.g0 + (treeProp.g1 - treeProp.g0) * p);
-						b = (treeProp.b0 + (treeProp.b1 - treeProp.b0) * p);
+						if ((p * 8) % 2 < 1) {
+							nodes[ci.node].cvalue = treeProp.black;
+						}
+						else {
+							nodes[ci.node].cvalue = treeProp.red;
+						}
 					}
-					nodes[ci.node].cvalue = 'rgb(' + (r|0) + ',' + (g|0) + ',' + (b|0) + ')';
 
 					++highlightedNode;
 				}
@@ -603,7 +625,7 @@ function updateTree (operation) {
 	clipboard.value = parseInt(document.getElementById("nodeValue").value);
 
 	canvasProp.stepDuration = 60000 / (parseInt(document.getElementById("speed").value) * (1 + canvasProp.stepDelay));
-	
+
 	recordChanges (null, null, null, true);
 	reDraw(clipboard.value, operation);
 }
