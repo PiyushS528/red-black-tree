@@ -1,4 +1,7 @@
 
+/*
+	- Comments added (in progress)
+*/
 function Node (val, col, x, y, cvalue) {		// Node class
 	this.value = (val === undefined) ? 0 : val;
 	this.color = (col === undefined) ? 0 : col;	   // 0=> black;  1=> red;  -1=> double black
@@ -42,7 +45,7 @@ var tree = {
 		if (!return2power) return level;
 		else return exponent;
 	},
-	nodeExists: function nodeExists (pos) {
+	nodeExists: function nodeExists (pos) {	// returns false if node does not exist at given index
 		if (!this.nodes[pos]) {
 			return false;
 		}
@@ -56,15 +59,23 @@ var tree = {
 		}
 	},
 	*/
-	setNode: function setNode (pos, node, checkParent) {
+	copyNode: function copyNode (from, to) {
+		if (this.nodeExists(from))
+			this.setNode(to, this.nodes[from], false);
+		else
+			this.setNode(to, null, false);
+	},
+	setNode: function setNode (pos, node, checkParent) {	// adds a Node object at given position
+		// if checkParent is true, node will not be added if there's no parent for given position in nodes array
+
 		if (checkParent === undefined) checkParent = true;
 
-		if(pos !== 0 && checkParent && !this.nodeExists (Math.floor((pos - 1) / 2))) {	// Check if parent exists for node at given position
+		if (pos !== 0 && checkParent && !this.nodeExists (Math.floor((pos - 1) / 2))) {	// Check if parent exists for node at given position
 			console.log(new Error("Parent Node does not exist at given position: " + pos));
 			return;
 		}
 		var currLevel = this.levelOf(pos);
-		if (currLevel > this.height) {		// If the current level is accessed for the first time, initialize current level
+		if (currLevel > this.height) {		// If the current level is accessed for the first time, initialize current level with null values
 			var begin = Math.pow(2, currLevel) - 1;
 			var end = 2 * begin;
 			while (begin <= end) {
@@ -77,7 +88,9 @@ var tree = {
 		}
 		this.nodes[pos] = node;
 	},
-	eraseNode: function eraseNode (pos, updateHeight) {		// Deletes node at pos()
+	eraseNode: function eraseNode (pos, updateHeight) {		// Deletes node at pos
+		// if updateHeight is true, the height variable will be updated (decreased) if current level is empty after deletion, and nodes array trimmed
+
 		if (updateHeight === undefined) updateHeight = true;
 		this.nodes[pos] = null;
 
@@ -87,7 +100,7 @@ var tree = {
 			var end = 2 * begin;
 
 			while (begin <= end) {
-				if (this.nodeExists(begin)) return;
+				if (this.nodeExists(begin)) return;	// if current level is not empty, then height remains the same
 				++begin;
 			}
 			this.height = currLevel - 1;
@@ -95,13 +108,15 @@ var tree = {
 			this.nodes = this.nodes.slice(0, end/2);
 		}
 	},
-	searchNode: function searchNode (record, val) {
+	searchNode: function searchNode (record, val) {	// performs binary search for val
+		// record is a function (recordChanges() from rb-tree-script.js) that will record changes/transitions for animation purposes
+
 		if (!record) record = function(){}
 		var curr = 0, ind = -1, prev = -1, changes = [];
 
 		while (true) {
 			if (this.nodeExists(curr)) {
-				if (prev !== -1) changes.push({from: prev, node: curr});
+				if (prev !== -1) changes.push({from: prev, node: curr});	// The blue search ring moves from position of 'prev' node to 'curr' node
 				prev = curr;
 
 				if (val === this.nodes[curr].value) {
@@ -114,17 +129,12 @@ var tree = {
 			else break;
 		}
 		var i = -1;
-		while (changes[++i]) record(this.nodes, 4, [changes[i]]);
-		if (ind !== -1) record(this.nodes, 6, [{node: ind}]);
+		while (changes[++i]) record(this.nodes, 4, [changes[i]]);	// Search ring moves through each successive node
+		if (ind !== -1) record(this.nodes, 6, [{node: ind}]);	// and blinks if the data is found
 		return ind;
 	},
-	copyNode: function copyNode (from, to) {
-		if (this.nodeExists(from))
-			this.setNode(to, this.nodes[from], false);
-		else
-			this.setNode(to, null, false);
-	},
 	getSuccessor: function getSuccessor (record, index) {
+		// finds the inorder successor (or predecessor if there's no right child) and records movements of red search ring like searchNode function
 		if (!record) record = function(){}
 
 		var prev = index;
@@ -152,7 +162,7 @@ var tree = {
 		while (changes[++i]) record(this.nodes, 5, [changes[i]]);
 		return index;
 	},
-	getNodes: function getNodes() {
+	getNodes: function getNodes() {	// not in use anymore
 		var strNodes = "";
 		var lastLevelNode = 0;
 
