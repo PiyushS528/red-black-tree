@@ -1,32 +1,7 @@
 
 /*
-	- arrows added
+	- added comments
 */
-
-/* ***************************
-Dependencies from treeObj.js:
-
-function Node (val = 0, col = 0, x = -1, y = -1, cvalue = "#000000");		// Node class
-
-var tree = {
-	nodes: []	// Stores all nodes in array binary tree form
-	height: 0	// Stores height of tree
-	
-	at (strPos, initIndex)		// takes a string of 'l's and 'r's for successive left or right child elements respectively and returns its index number in nodes (tree) array.
-	levelOf (pos)
-	nodeExists (pos)
-	setNode: function setNode (pos, node, checkParent = true)
-	deleteNode (pos, updateHeight = true)
-	searchNode (val)
-	copyNode (from, to)
-	getNodes()
-	randomize (numNodes = 16, maxDiff = 6, minDiff = 3)
-
-	insertNode (val, col = 1)
-	rotate (index, direc = 0)		// Performs rotation of the tree; direc = 0 for left, 1 for right rotation
-}
-
-******************************* */
 
 var c;		// = canvas.getContext("2d")
 var animFrame;
@@ -34,7 +9,7 @@ var progress = [];
 var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame;
 var cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.msCancelRequestAnimationFrame;
 
-var clipboard = {
+var clipboard = {		// stores last operation performed (for redo function), and latest height of tree, when needed.
 	operation: 0,
 	value: 0,
 	newHeight: -1
@@ -81,11 +56,11 @@ function clearCanvas() {
 	c.clearRect(0, 0, canvasProp.width, canvasProp.height);
 }
 
-function drawNode (val, x, y, col) {
+function drawNode (val, x, y, col) {	// Draws nodes with a value (val), at x, y coordinates, and with the color specified (values like 0 for black, 1 for red or a color code)
 	if (val === undefined) val = 0;
 	if (col === undefined) col = 0;
 
-	if (col === -2 || col === -3) {
+	if (col === -2 || col === -3) {	// colors -2 and -3 for blue and red search ring respectively
 		c.beginPath();
 		c.moveTo(x + treeProp.nodeRadius + 6, y);
 		c.arc(x, y, treeProp.nodeRadius + 6, 0, 2 * Math.PI);
@@ -101,13 +76,13 @@ function drawNode (val, x, y, col) {
 	c.beginPath();
 	c.moveTo(x + treeProp.nodeRadius, y);
 	c.arc(x, y, treeProp.nodeRadius, 0, 2 * Math.PI);
-	if (col !== 0 && col !== 1 && col !== -1)
+	if (col !== 0 && col !== 1 && col !== -1)	// !== black, red, double black
 		c.fillStyle = col;
 	else
 		c.fillStyle = (col === 1) ? treeProp.red : treeProp.black;
 	c.fill();
 	// c.strokeStyle = treeProp.stroke;
-	if (col === -1) {
+	if (col === -1) {	// Double black node
 		c.strokeStyle = treeProp.black;
 		c.stroke();
 		c.closePath();
@@ -130,29 +105,28 @@ function drawNode (val, x, y, col) {
 }
 
 function drawLine (x1, y1, x2, y2) {
-	var dx = x2 - x1;
-	var dy = y2 - y1;
+	var dx = x1 - x2;
+	var dy = y1 - y2;
 	var len = Math.sqrt(dx*dx + dy*dy);
 
-	x1 += treeProp.nodeRadius * dx / len;
-	x2 -= treeProp.nodeRadius * dx / len;
-	y1 += treeProp.nodeRadius * dy / len;
-	y2 -= treeProp.nodeRadius * dy / len;
+	x1 -= treeProp.nodeRadius * dx / len;
+	x2 += treeProp.nodeRadius * dx / len;
+	y1 -= treeProp.nodeRadius * dy / len;
+	y2 += treeProp.nodeRadius * dy / len;
 
-	c.beginPath();
+	c.beginPath();	// Draw line connecting parent and child
 	c.moveTo(x1, y1);
 	c.lineTo(x2, y2);
 	// c.strokeStyle = treeProp.stroke;
 	c.stroke();
 	c.closePath();
 
-	var theta = Math.atan2(-dy, -dx);
-	var arrow_p1x = x1 - 20 * Math.cos (theta + 20 * Math.PI / 180);
-	var arrow_p1y = y1 - 20 * Math.sin (theta + 20 * Math.PI / 180);
-	var arrow_p2x = x1 - 20 * Math.cos (theta - 20 * Math.PI / 180);
-	var arrow_p2y = y1 - 20 * Math.sin (theta - 20 * Math.PI / 180);
+	var arrow_p1x = x1 - (15 * dx - 7 * dy) / len;
+	var arrow_p1y = y1 - (15 * dy + 7 * dx) / len;
+	var arrow_p2x = x1 - (15 * dx + 7 * dy) / len;
+	var arrow_p2y = y1 - (15 * dy - 7 * dx) / len;
 
-	c.beginPath();
+	c.beginPath();	// Draw arrow
 	c.moveTo(x1, y1);
 	c.lineTo(arrow_p1x, arrow_p1y);
 	c.lineTo(arrow_p2x, arrow_p2y);
@@ -163,13 +137,16 @@ function drawLine (x1, y1, x2, y2) {
 }
 
 function drawTree (nodes, other, skipnodes) {
+	// array of nodes to print with parent and children connected with line, array of other nodes (no connecting lines)
+	// skipnodes: array of indices of nodes that needs to be skipped from drawing, in ascending order
+
 	if (other === undefined) other = [];
 	if (skipnodes === undefined) skipnodes = [];
 
 	if (!nodes) nodes = tree.nodes;
 	clearCanvas();
 
-	var skipIndex = 0;
+	var skipIndex = 0;	// Index for skipnodes array
 
 	for (var i = 0; i < nodes.length; ++i) {
 		if (nodes[i]) {
@@ -189,7 +166,7 @@ function drawTree (nodes, other, skipnodes) {
 	}
 }
 
-function calcNodePositions (nodes) {
+function calcNodePositions (nodes) {	// calculate positions on the canvas for each node
 	if (nodes === undefined) nodes = tree.nodes;
 	if (!nodes[0]) return;
 
@@ -197,7 +174,7 @@ function calcNodePositions (nodes) {
 	var curr = 0;
 	var xcurr = treeProp.marginX;
 
-	while (q.length !== 0 || curr === 0) {
+	while (q.length !== 0 || curr === 0) {	// An inorder successor's x-coordinate is incremented by constant amount (treeProp.xSpacing)
 		if (nodes[curr]) {
 			q.push (curr);
 			curr = curr * 2 + 1;
@@ -221,13 +198,13 @@ function calcNodePositions (nodes) {
 	var lastOffset = (nodes[curr].x) - (canvasProp.width - treeProp.marginX);
 	var newOffsetx;
 
-	if (lastOffset <= 0) {		// Offset all nodes by certain amount
+	if (lastOffset <= 0) {		// Offset all nodes by certain amount to center the tree (if there's extra space left)
 		newOffsetx = (-lastOffset / 2) | 0;
 		for (var i = 0; i < nodes.length; ++i)
 			if (nodes[i] && (nodes[((i - 1) / 2) | 0] || i === 0)) nodes[i].x += newOffsetx;
 		newOffsetx = 1;
 	}
-	else {		// Squeeze to fit
+	else {		// Squeeze to fit if the tree overflows beyond the right edge of canvas
 		newOffsetx = (canvasProp.width - 2 * treeProp.marginX) / (canvasProp.width - 2 * treeProp.marginX + lastOffset);
 		for (var i = 0; i < nodes.length; ++i) {
 			if (nodes[i] && (nodes[((i - 1) / 2) | 0] || i === 0)) {
@@ -237,10 +214,11 @@ function calcNodePositions (nodes) {
 			}
 		}
 	}
-	return treeProp.xSpacing * newOffsetx;
+	return treeProp.xSpacing * newOffsetx;	// new X-offset between a node and its in-order successor
 }
 
 function nodeCpy (src) {
+	// Copy nodes from src (array of nodes) and return it (array of objects cannot be assigned directly, otherwise a reference is created, essentially both variable names refer to the same array)
 	var dest = [];
 	for (var i = 0; i < src.length; ++i) {
 		if (src[i] === null || src[i] === undefined) dest[i] = null;
@@ -249,7 +227,7 @@ function nodeCpy (src) {
 	return dest;
 }
 
-function recordChanges (nodes, animtype, changes, init) {
+function recordChanges (nodes, animtype, changes, init) {	// Records the changes made in tree in transition object, for animation purposes
 	/* animtypes:
 		0 - move
 		1 - add node
@@ -264,7 +242,7 @@ function recordChanges (nodes, animtype, changes, init) {
 	*/
 
 	if (init === undefined) init = false;
-	if (init) {
+	if (init) {	// Initialise transition state with current tree configuration and record the current height
 		transition.reset();
 		calcNodePositions (tree.nodes);
 		transition.state[0] = nodeCpy(tree.nodes);
@@ -276,15 +254,15 @@ function recordChanges (nodes, animtype, changes, init) {
 
 	changes.sort(function(a, b) {return a.node - b.node});
 
-	if (animtype !== 2) nodeSpacingX = calcNodePositions (nodes);
+	if (animtype !== 2) nodeSpacingX = calcNodePositions (nodes);	// Calculate position of nodes after last operation, unless deletion has been done
 
 	if (animtype === 0 || animtype === 8) {		// move / move and toggle color
 		for (var i = 0; i < changes.length; ++i) {
 			if (!nodes[changes[i].node]) continue;
-			changes[i].x1 = transition.state[transition.state.length - 1][changes[i].from].x;
+			changes[i].x1 = transition.state[transition.state.length - 1][changes[i].from].x;	// Initial position of node
 			changes[i].y1 = transition.state[transition.state.length - 1][changes[i].from].y;
 
-			changes[i].x2 = nodes[changes[i].node].x;
+			changes[i].x2 = nodes[changes[i].node].x;	// Final position of node (after animation)
 			changes[i].y2 = nodes[changes[i].node].y;
 
 			if (animtype === 8)
@@ -295,7 +273,7 @@ function recordChanges (nodes, animtype, changes, init) {
 	else if (animtype === 1) {		// add node
 		for (var i = 0; i < changes.length; ++i) {
 			changes[i].x1 = canvasProp.width / 2;
-			changes[i].y1 = canvasProp.height + treeProp.nodeRadius + 2;
+			changes[i].y1 = canvasProp.height + treeProp.nodeRadius + 2;	// New node will appear from the bottom of canvas
 
 			changes[i].x2 = nodes[changes[i].node].x;
 			changes[i].y2 = nodes[changes[i].node].y;
@@ -320,7 +298,6 @@ function recordChanges (nodes, animtype, changes, init) {
 		changes[0].x1 = nodes[changes[0].from].x;
 		changes[0].y1 = nodes[changes[0].from].y;
 
-
 		if (!nodes[changes[0].node]) {	// in case it's a new node to be inserted, the circle will move to the empty spot where the new node is to be inserted
 			changes[0].y2 = changes[0].y1 + treeProp.ySpacing;
 			if (changes[0].node % 2 === 1) changes[0].x2 = changes[0].x1 - nodeSpacingX;
@@ -332,7 +309,7 @@ function recordChanges (nodes, animtype, changes, init) {
 		}
 	}
 	else if (animtype === 6 || animtype === 7) {		// search blink
-		if (!nodes[0]) {
+		if (!nodes[0]) {	// If first node is being created (root node)
 			changes[0].x = canvasProp.width / 2;
 			changes[0].y = treeProp.marginY;
 		}
@@ -359,6 +336,8 @@ function animate (args) {
 	if (args.stepNumber === undefined) args.stepNumber = 0;
 
 	if (args.stepNumber >= transition.steps.length) {
+		// If all steps are completed, calculate final node positions and draw the tree before exiting
+
 		calcNodePositions (transition.state[args.stepNumber + 1]);
 		calcNodePositions (tree.nodes);
 		drawTree(tree.nodes);
